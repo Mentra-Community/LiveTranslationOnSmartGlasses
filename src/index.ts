@@ -19,8 +19,8 @@ interface TranslationData {
 // Configuration constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
 const CLOUD_HOST_NAME = process.env.CLOUD_HOST_NAME || "cloud";
-const PACKAGE_NAME = process.env.PACKAGE_NAME;
-const API_KEY = process.env.AUGMENTOS_API_KEY; // In production, this would be securely stored
+const PACKAGE_NAME = process.env.PACKAGE_NAME || "com.augmentos.livetranslation";
+const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY || 'test_key'; // In production, this would be securely stored
 const MAX_FINAL_TRANSCRIPTS = 3;
 
 // User transcript processors map
@@ -47,7 +47,7 @@ class LiveTranslationApp extends TpaServer {
   constructor() {
     super({
       packageName: PACKAGE_NAME || 'dev.augmentos.livetranslation',
-      apiKey: API_KEY || 'test_key',
+      apiKey: AUGMENTOS_API_KEY || 'test_key',
       port: PORT,
       publicDir: path.join(__dirname, './public'),
     });
