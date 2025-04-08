@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile.dev
     container_name: live-translation-dev
     ports:
-      - "8080:80"
+      - "8070:80"
     volumes:
       - ../src:/app/src:delegated
       - ../scripts:/app/scripts:delegated

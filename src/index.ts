@@ -5,7 +5,7 @@ import {
   TpaSession,
   ViewType,
 } from '@augmentos/sdk';
-import { TranscriptProcessor, languageToLocale, convertLineWidth } from '@augmentos/utils';
+import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import axios from 'axios';
 
 // Define TranslationData interface to match expected structure

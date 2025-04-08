@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: live-translation
     ports:
-      - "8090:80"
+      - "8070:80"
     environment:
       - PORT=80
       - CLOUD_HOST_NAME=cloud
