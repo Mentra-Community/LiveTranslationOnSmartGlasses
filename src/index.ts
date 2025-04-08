@@ -176,14 +176,16 @@ class LiveTranslationApp extends TpaServer {
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
 
+      // console.log('lineWidthSetting:', lineWidthSetting);
+
       // Process line width and other formatting settings
-      const isChineseTarget = languageToLocale(targetLang).toLowerCase().startsWith('zh-') || languageToLocale(targetLang).toLowerCase().startsWith('ja-');
-      const lineWidth = lineWidthSetting ? convertLineWidth(lineWidthSetting.value, isChineseTarget) : 30;
+      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
+      const lineWidth = convertLineWidth(lineWidthSetting.value, isChineseTarget);
       
       let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : 3;
       if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = 3;
 
-      console.log(`Applied settings for user ${userId}: source=${sourceLang}, target=${targetLang}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}`);
+      // console.log(`Applied settings for user ${userId}: source=${sourceLang}, target=${targetLang}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}, isChineseTarget=${isChineseTarget}`);
 
       // Create new processor with the settings
       const newProcessor = new TranscriptProcessor(lineWidth, numberOfLines, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
@@ -215,6 +217,10 @@ class LiveTranslationApp extends TpaServer {
       const translationHandler = (data: TranslationData) => {
         this.handleTranslation(session, sessionId, userId, data);
       };
+
+      // console.log('Session object:', session);
+      // console.log('Available methods:', Object.keys(session));
+
 
       // Subscribe to language-specific translation
       const cleanup = session.onTranslationForLanguage(sourceLang, targetLang, translationHandler);
@@ -250,7 +256,7 @@ class LiveTranslationApp extends TpaServer {
     if (!transcriptProcessor) {
       // Create default processor if none exists
       const targetLang = userTargetLanguages.get(userId) || 'en-US';
-      const isChineseTarget = languageToLocale(targetLang).toLowerCase().startsWith('zh-') || languageToLocale(targetLang).toLowerCase().startsWith('ja-');
+      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
       transcriptProcessor = new TranscriptProcessor(30, 3, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
       userTranscriptProcessors.set(userId, transcriptProcessor);
     }

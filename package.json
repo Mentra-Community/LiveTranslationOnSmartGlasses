@@ -4,26 +4,26 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "bun --hot src/index.ts",
-    "docker:dev": "docker compose -f docker/docker-compose.dev.yml -p dev up",
+    "docker:dev": "docker compose -f docker/docker-compose.dev.yml -p live-translation-dev2 up",
     "docker:dev:detach": "./scripts/docker-dev.sh -d",
-    "docker:stop": "docker compose -f docker/docker-compose.dev.yml -p dev down",
-    "docker:build": "docker compose -f docker/docker-compose.dev.yml -p dev build",
+    "docker:stop": "docker compose -f docker/docker-compose.dev.yml -p live-translation-dev2 down",
+    "docker:build": "docker compose -f docker/docker-compose.dev.yml -p live-translation-dev2 build",
     "ngrok:isaiah": "ngrok http --url=live-translation.ngrok.dev 8070",
     
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "start": "bun dist/index.js",
     
-    "add": "docker exec -it live-trasnlation-dev bun add",
-    "add:dev": "docker exec -it live-trasnlation-dev bun add -d",
-    "remove": "docker exec -it live-trasnlation-dev bun remove",
+    "add": "docker exec -it live-translation-dev2 bun add",
+    "add:dev": "docker exec -it live-translation-dev2 bun add -d",
+    "remove": "docker exec -it live-translation-dev2 bun remove",
     
-    "test": "docker exec -it live-trasnlation-dev bun test",
-    "lint": "docker exec -it live-trasnlation-dev npx eslint 'src/**/*.ts'",
+    "test": "docker exec -it live-translation-dev2 bun test",
+    "lint": "docker exec -it live-translation-dev2 npx eslint 'src/**/*.ts'",
     
-    "logs": "docker logs -f live-trasnlation-dev",
-    "restart": "docker restart live-trasnlation-dev",
-    "exec": "docker exec -it live-trasnlation-dev",
-    "sh": "docker exec -it live-trasnlation-dev bash",
+    "logs": "docker logs -f live-translation-dev2",
+    "restart": "docker restart live-translation-dev2",
+    "exec": "docker exec -it live-translation-dev2",
+    "sh": "docker exec -it live-translation-dev2 bash",
     
     "prod": "docker compose -f docker/docker-compose.yml up",
     "prod:detach": "docker compose -f docker/docker-compose.yml up -d",
