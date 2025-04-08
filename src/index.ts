@@ -46,8 +46,8 @@ class LiveTranslationApp extends TpaServer {
 
   constructor() {
     super({
-      packageName: PACKAGE_NAME,
-      apiKey: API_KEY,
+      packageName: PACKAGE_NAME || 'dev.augmentos.livetranslation',
+      apiKey: API_KEY || 'test_key',
       port: PORT,
       publicDir: path.join(__dirname, './public'),
     });
