@@ -177,7 +177,7 @@ class LiveTranslationApp extends TpaServer {
       userTargetLanguages.set(userId, targetLang);
 
       // Process line width and other formatting settings
-      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
+      const isChineseTarget = languageToLocale(targetLang).toLowerCase().startsWith('zh-') || languageToLocale(targetLang).toLowerCase().startsWith('ja-');
       const lineWidth = lineWidthSetting ? convertLineWidth(lineWidthSetting.value, isChineseTarget) : 30;
       
       let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : 3;
@@ -250,7 +250,7 @@ class LiveTranslationApp extends TpaServer {
     if (!transcriptProcessor) {
       // Create default processor if none exists
       const targetLang = userTargetLanguages.get(userId) || 'en-US';
-      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
+      const isChineseTarget = languageToLocale(targetLang).toLowerCase().startsWith('zh-') || languageToLocale(targetLang).toLowerCase().startsWith('ja-');
       transcriptProcessor = new TranscriptProcessor(30, 3, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
       userTranscriptProcessors.set(userId, transcriptProcessor);
     }
