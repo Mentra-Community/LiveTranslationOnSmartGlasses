@@ -21,7 +21,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
 const CLOUD_HOST_NAME = process.env.CLOUD_HOST_NAME || "dev.augmentos.org";
 const PACKAGE_NAME = process.env.PACKAGE_NAME || "dev.augmentos.livetranslation";
 const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY || 'test_key'; // In production, this would be securely stored
-const MAX_FINAL_TRANSCRIPTS = 3;
+const MAX_FINAL_TRANSCRIPTS = 10;
 
 // User transcript processors map
 const userTranscriptProcessors: Map<string, TranscriptProcessor> = new Map();
@@ -337,6 +337,17 @@ class LiveTranslationApp extends TpaServer {
   }
 
   /**
+   * Cleans the transcript text by removing leading punctuation while preserving Spanish question marks
+   * and Chinese characters
+   */
+  private cleanTranscriptText(text: string): string {
+    // Remove basic punctuation marks (both Western and Chinese)
+    // Western: . , ; : ! ?
+    // Chinese: 。 ， ； ： ！ ？
+    return text.replace(/^[.,;:!?。，；：！？]+/, '').trim();
+  }
+
+  /**
    * Displays transcript text in the AR view
    */
   private showTranscriptsToUser(
@@ -344,7 +355,9 @@ class LiveTranslationApp extends TpaServer {
     transcript: string,
     isFinal: boolean
   ): void {
-    session.layouts.showTextWall(transcript, {
+    const cleanedTranscript = this.cleanTranscriptText(transcript);
+
+    session.layouts.showTextWall(cleanedTranscript, {
       view: ViewType.MAIN,
       // Use a fixed duration for final transcripts (20 seconds)
       durationMs: isFinal ? 20000 : undefined,
