@@ -184,7 +184,7 @@ class LiveTranslationApp extends TpaServer {
       // console.log('lineWidthSetting:', lineWidthSetting);
 
       // Process line width and other formatting settings
-      const isChineseTarget = targetLang.toLowerCase().includes('hanzi');
+      const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
       const lineWidth = convertLineWidth(lineWidthSetting.value, isChineseTarget);
       
       let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : 3;
