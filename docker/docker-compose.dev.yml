@@ -16,7 +16,6 @@ services:
     environment:
       - PORT=80
       - NODE_ENV=development
-      - CLOUD_HOST_NAME=dev.augmentos.org
     command: ["bun", "--hot", "src/index.ts"]
     restart: "no"
     stdin_open: true

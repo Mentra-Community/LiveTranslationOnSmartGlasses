@@ -6,6 +6,7 @@ import {
   ViewType,
 } from '@augmentos/sdk';
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
+import { convertToPinyin } from './utils/ChineseUtils';
 import axios from 'axios';
 
 // Define TranslationData interface to match expected structure
@@ -76,13 +77,15 @@ class LiveTranslationApp extends TpaServer {
       userTranscriptProcessors.set(userId, transcriptProcessor);
       
       // Default source and target languages
-      const sourceLang = 'zh-CN';
-      const targetLang = 'en-US';
+      const sourceLang = 'Chinese (Hanzi)';
+      const targetLang = 'English';
+      const sourceLocale = languageToLocale(sourceLang);
+      const targetLocale = languageToLocale(targetLang);
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
 
       // Setup handler for translation data
-      const cleanup = session.onTranslationForLanguage(sourceLang, targetLang, (data: TranslationData) => {
+      const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
         this.handleTranslation(session, sessionId, userId, data);
       });
       
@@ -162,8 +165,10 @@ class LiveTranslationApp extends TpaServer {
 
       // Process language settings
       // Default source language is zh-CN, default target is en-US
-      const sourceLang = transcribeLanguageSetting?.value ? languageToLocale(transcribeLanguageSetting.value) : 'zh-CN';
-      const targetLang = translateLanguageSetting?.value ? languageToLocale(translateLanguageSetting.value) : 'en-US';
+      const sourceLang = transcribeLanguageSetting?.value || 'Chinese (Hanzi)';
+      const targetLang = translateLanguageSetting?.value || 'English';
+      const sourceLocale = languageToLocale(sourceLang);
+      const targetLocale = languageToLocale(targetLang);
 
       // Get previous processor to check for language changes and preserve history
       const previousTranscriptProcessor = userTranscriptProcessors.get(userId);
@@ -179,7 +184,7 @@ class LiveTranslationApp extends TpaServer {
       // console.log('lineWidthSetting:', lineWidthSetting);
 
       // Process line width and other formatting settings
-      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
+      const isChineseTarget = targetLang.toLowerCase().includes('hanzi');
       const lineWidth = convertLineWidth(lineWidthSetting.value, isChineseTarget);
       
       let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : 3;
@@ -211,7 +216,7 @@ class LiveTranslationApp extends TpaServer {
       }
 
       // If we're in session context, set up translation handler
-      console.log(`Setting up translation handlers for session ${sessionId} (${sourceLang}->${targetLang})`);
+      console.log(`Setting up translation handlers for session ${sessionId} (${sourceLocale}->${targetLocale})`);
       
       // Create handler for the language pair
       const translationHandler = (data: TranslationData) => {
@@ -223,12 +228,12 @@ class LiveTranslationApp extends TpaServer {
 
 
       // Subscribe to language-specific translation
-      const cleanup = session.onTranslationForLanguage(sourceLang, targetLang, translationHandler);
+      const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, translationHandler);
       
       // Register cleanup handler
       this.addCleanupHandler(cleanup);
       
-      console.log(`Subscribed to translations from ${sourceLang} to ${targetLang} for user ${userId}`);
+      console.log(`Subscribed to translations from ${sourceLocale} to ${targetLocale} for user ${userId}`);
 
       // Return status for API endpoint response
       return {
@@ -262,11 +267,19 @@ class LiveTranslationApp extends TpaServer {
     }
 
     const isFinal = translationData.isFinal;
-    const newText = translationData.text;
-    const sourceLanguage = translationData.language || userSourceLanguages.get(userId) || 'zh-CN';
-    const targetLanguage = translationData.targetLanguage || userTargetLanguages.get(userId) || 'en-US';
+    let newText = translationData.text;
+    const sourceLanguage = userSourceLanguages.get(userId) || 'Chinese (Hanzi)';
+    const targetLanguage = userTargetLanguages.get(userId) || 'English';
+    const sourceLocale = languageToLocale(sourceLanguage);
+    const targetLocale = languageToLocale(targetLanguage);
 
-    console.log(`[Session ${sessionId}]: Received translation (${sourceLanguage}->${targetLanguage})`);
+    console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
+
+    if (targetLanguage === 'Chinese (Pinyin)') {
+      const pinyinTranscript = convertToPinyin(newText);
+      console.log(`[Session ${sessionId}]: Converting Chinese to Pinyin`);
+      newText = pinyinTranscript;
+    }
 
     // Process the new translation text
     transcriptProcessor.processString(newText, isFinal);

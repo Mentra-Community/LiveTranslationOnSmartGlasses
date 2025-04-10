@@ -9,42 +9,37 @@
     "docker:stop": "docker compose -f docker/docker-compose.dev.yml -p live-translation-dev2 down",
     "docker:build": "docker compose -f docker/docker-compose.dev.yml -p live-translation-dev2 build",
     "ngrok:isaiah": "ngrok http --url=live-translation.ngrok.dev 8070",
-    
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "start": "bun dist/index.js",
-    
     "add": "docker exec -it live-translation-dev2 bun add",
     "add:dev": "docker exec -it live-translation-dev2 bun add -d",
     "remove": "docker exec -it live-translation-dev2 bun remove",
-    
     "test": "docker exec -it live-translation-dev2 bun test",
     "lint": "docker exec -it live-translation-dev2 npx eslint 'src/**/*.ts'",
-    
     "logs": "docker logs -f live-translation-dev2",
     "restart": "docker restart live-translation-dev2",
     "exec": "docker exec -it live-translation-dev2",
     "sh": "docker exec -it live-translation-dev2 bash",
-    
     "prod": "docker compose -f docker/docker-compose.yml up",
     "prod:detach": "docker compose -f docker/docker-compose.yml up -d",
     "prod:stop": "docker compose -f docker/docker-compose.yml down",
     "prod:build": "docker compose -f docker/docker-compose.yml build",
-    
     "image:build": "docker build -t augmentos/live-trasnlation:latest -t augmentos/live-trasnlation:$npm_package_version -f docker/Dockerfile .",
     "image:push": "docker push augmentos/live-trasnlation:latest && docker push augmentos/live-trasnlation:$npm_package_version",
     "image:release": "npm run image:build && npm run image:push",
-    
     "ghcr:build": "docker build -t ghcr.io/augmentos/live-trasnlation:latest -t ghcr.io/augmentos/live-trasnlation:$npm_package_version -f docker/Dockerfile .",
     "ghcr:push": "docker push ghcr.io/augmentos/live-trasnlation:latest && docker push ghcr.io/augmentos/live-trasnlation:$npm_package_version",
     "ghcr:release": "npm run ghcr:build && npm run ghcr:push"
   },
   "dependencies": {
     "@augmentos/sdk": "^1.1.2",
+    "@node-rs/jieba": "^2.0.1",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",
     "@types/ws": "^8.18.0",
     "express": "^4.21.2",
     "path": "^0.12.7",
+    "pinyin-pro": "^3.26.0",
     "ws": "^8.18.1"
   },
   "devDependencies": {
