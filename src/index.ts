@@ -8,6 +8,7 @@ import {
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
 import axios from 'axios';
+import fs from 'fs';
 
 // Define TranslationData interface to match expected structure
 interface TranslationData {
@@ -16,6 +17,18 @@ interface TranslationData {
   language?: string;
   targetLanguage?: string;
 }
+
+// Load TPA config to get default values
+const tpaConfigPath = path.join(__dirname, './public/tpa_config.json');
+const tpaConfig = JSON.parse(fs.readFileSync(tpaConfigPath, 'utf8'));
+
+// Extract default values from config
+const defaultSettings = {
+  transcribeLanguage: tpaConfig.settings.find((s: any) => s.key === 'transcribe_language')?.defaultValue || 'Chinese (Hanzi)',
+  translateLanguage: tpaConfig.settings.find((s: any) => s.key === 'translate_language')?.defaultValue || 'English',
+  lineWidth: tpaConfig.settings.find((s: any) => s.key === 'line_width')?.defaultValue || 'Medium',
+  numberOfLines: tpaConfig.settings.find((s: any) => s.key === 'number_of_lines')?.defaultValue || 3
+};
 
 // Configuration constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
@@ -73,12 +86,16 @@ class LiveTranslationApp extends TpaServer {
     } catch (error) {
       console.error('Error initializing session:', error);
       // Apply default settings if there was an error
-      const transcriptProcessor = new TranscriptProcessor(30, 3, MAX_FINAL_TRANSCRIPTS);
+      const transcriptProcessor = new TranscriptProcessor(
+        convertLineWidth(defaultSettings.lineWidth, defaultSettings.translateLanguage.toLowerCase().includes('hanzi')), 
+        defaultSettings.numberOfLines, 
+        MAX_FINAL_TRANSCRIPTS
+      );
       userTranscriptProcessors.set(userId, transcriptProcessor);
       
-      // Default source and target languages
-      const sourceLang = 'Chinese (Hanzi)';
-      const targetLang = 'English';
+      // Default source and target languages from config
+      const sourceLang = defaultSettings.transcribeLanguage;
+      const targetLang = defaultSettings.translateLanguage;
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
       userSourceLanguages.set(userId, sourceLang);
@@ -163,10 +180,9 @@ class LiveTranslationApp extends TpaServer {
       const transcribeLanguageSetting = settings.find(s => s.key === 'transcribe_language');
       const translateLanguageSetting = settings.find(s => s.key === 'translate_language');
 
-      // Process language settings
-      // Default source language is zh-CN, default target is en-US
-      const sourceLang = transcribeLanguageSetting?.value || 'Chinese (Hanzi)';
-      const targetLang = translateLanguageSetting?.value || 'English';
+      // Process language settings - use default settings from config when not provided
+      const sourceLang = transcribeLanguageSetting?.value || defaultSettings.transcribeLanguage;
+      const targetLang = translateLanguageSetting?.value || defaultSettings.translateLanguage;
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
 
@@ -181,16 +197,12 @@ class LiveTranslationApp extends TpaServer {
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
 
-      // console.log('lineWidthSetting:', lineWidthSetting);
-
       // Process line width and other formatting settings
       const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
-      const lineWidth = convertLineWidth(lineWidthSetting.value, isChineseTarget);
+      const lineWidth = convertLineWidth(lineWidthSetting?.value || defaultSettings.lineWidth, isChineseTarget);
       
-      let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : 3;
-      if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = 3;
-
-      // console.log(`Applied settings for user ${userId}: source=${sourceLang}, target=${targetLang}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}, isChineseTarget=${isChineseTarget}`);
+      let numberOfLines = numberOfLinesSetting ? Number(numberOfLinesSetting.value) : defaultSettings.numberOfLines;
+      if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = defaultSettings.numberOfLines;
 
       // Create new processor with the settings
       const newProcessor = new TranscriptProcessor(lineWidth, numberOfLines, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
@@ -222,10 +234,6 @@ class LiveTranslationApp extends TpaServer {
       const translationHandler = (data: TranslationData) => {
         this.handleTranslation(session, sessionId, userId, data);
       };
-
-      // console.log('Session object:', session);
-      // console.log('Available methods:', Object.keys(session));
-
 
       // Subscribe to language-specific translation
       const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, translationHandler);
@@ -260,16 +268,21 @@ class LiveTranslationApp extends TpaServer {
     let transcriptProcessor = userTranscriptProcessors.get(userId);
     if (!transcriptProcessor) {
       // Create default processor if none exists
-      const targetLang = userTargetLanguages.get(userId) || 'en-US';
+      const targetLang = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
       const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
-      transcriptProcessor = new TranscriptProcessor(30, 3, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
+      transcriptProcessor = new TranscriptProcessor(
+        convertLineWidth(defaultSettings.lineWidth, isChineseTarget),
+        defaultSettings.numberOfLines,
+        MAX_FINAL_TRANSCRIPTS,
+        isChineseTarget
+      );
       userTranscriptProcessors.set(userId, transcriptProcessor);
     }
 
     const isFinal = translationData.isFinal;
     let newText = translationData.text;
-    const sourceLanguage = userSourceLanguages.get(userId) || 'Chinese (Hanzi)';
-    const targetLanguage = userTargetLanguages.get(userId) || 'English';
+    const sourceLanguage = userSourceLanguages.get(userId) || defaultSettings.transcribeLanguage;
+    const targetLanguage = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
     const sourceLocale = languageToLocale(sourceLanguage);
     const targetLocale = languageToLocale(targetLanguage);
 
