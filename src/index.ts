@@ -4,19 +4,12 @@ import {
   TpaServer,
   TpaSession,
   ViewType,
+  TranslationData,
 } from '@augmentos/sdk';
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
 import axios from 'axios';
 import fs from 'fs';
-
-// Define TranslationData interface to match expected structure
-interface TranslationData {
-  isFinal: boolean;
-  text: string;
-  language?: string;
-  targetLanguage?: string;
-}
 
 // Load TPA config to get default values
 const tpaConfigPath = path.join(__dirname, './public/tpa_config.json');
@@ -27,7 +20,8 @@ const defaultSettings = {
   transcribeLanguage: tpaConfig.settings.find((s: any) => s.key === 'transcribe_language')?.defaultValue || 'Chinese (Hanzi)',
   translateLanguage: tpaConfig.settings.find((s: any) => s.key === 'translate_language')?.defaultValue || 'English',
   lineWidth: tpaConfig.settings.find((s: any) => s.key === 'line_width')?.defaultValue || 'Medium',
-  numberOfLines: tpaConfig.settings.find((s: any) => s.key === 'number_of_lines')?.defaultValue || 3
+  numberOfLines: tpaConfig.settings.find((s: any) => s.key === 'number_of_lines')?.defaultValue || 3,
+  displayMode: tpaConfig.settings.find((s: any) => s.key === 'display_mode')?.defaultValue || 'translations'
 };
 
 // Configuration constants
@@ -42,6 +36,7 @@ const userTranscriptProcessors: Map<string, TranscriptProcessor> = new Map();
 // Map to track the active languages for each user (source and target)
 const userSourceLanguages: Map<string, string> = new Map();
 const userTargetLanguages: Map<string, string> = new Map();
+const userDisplayModes: Map<string, string> = new Map();
 
 // For debouncing transcripts per session
 interface TranscriptDebouncer {
@@ -100,6 +95,7 @@ class LiveTranslationApp extends TpaServer {
       const targetLocale = languageToLocale(targetLang);
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
+      userDisplayModes.set(userId, defaultSettings.displayMode);
 
       // Setup handler for translation data
       const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
@@ -179,6 +175,9 @@ class LiveTranslationApp extends TpaServer {
       const numberOfLinesSetting = settings.find(s => s.key === 'number_of_lines');
       const transcribeLanguageSetting = settings.find(s => s.key === 'transcribe_language');
       const translateLanguageSetting = settings.find(s => s.key === 'translate_language');
+      const displayModeSetting = settings.find(s => s.key === 'display_mode');
+
+      userDisplayModes.set(userId, displayModeSetting?.value || defaultSettings.displayMode);
 
       // Process language settings - use default settings from config when not provided
       const sourceLang = transcribeLanguageSetting?.value || defaultSettings.transcribeLanguage;
@@ -285,6 +284,15 @@ class LiveTranslationApp extends TpaServer {
     const targetLanguage = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
     const sourceLocale = languageToLocale(sourceLanguage);
     const targetLocale = languageToLocale(targetLanguage);
+
+    // Get the display mode from settings or use default
+    const displayMode = userDisplayModes.get(userId) || defaultSettings.displayMode;
+    
+    // If display mode is set to translations and the text is not in source language, return early
+    if (displayMode === 'translations' && !translationData.didTranslate) {
+      console.log(`[Session ${sessionId}]: Skipping translation - not in source language (${sourceLocale})`);
+      return;
+    }
 
     console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
 

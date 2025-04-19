@@ -182,6 +182,22 @@
                   "value": 5
               }
           ]
+      },
+      {
+          "key": "display_mode",
+          "type": "select",
+          "label": "When to display",
+          "defaultValue": "translations",
+          "options": [
+              {
+                  "label": "Only show translations",
+                  "value": "translations"
+              },
+              {
+                  "label": "Caption everything",
+                  "value": "everything"
+              }
+          ]
       }
   ]
 }
