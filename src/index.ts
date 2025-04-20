@@ -165,7 +165,7 @@ class LiveTranslationApp extends TpaServer {
       // If settings aren't provided, fetch them from API
       if (!providedSettings) {
         console.log(`Fetching settings for user ${userId}`);
-        const response = await axios.get(`https://${CLOUD_HOST_NAME}/tpasettings/user/${PACKAGE_NAME}`, {
+        const response = await axios.get(`http://${CLOUD_HOST_NAME}/tpasettings/user/${PACKAGE_NAME}`, {
           headers: { Authorization: `Bearer ${userId}` }
         });
         settings = response.data.settings;
