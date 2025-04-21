@@ -55,8 +55,8 @@ class LiveTranslationApp extends TpaServer {
 
   constructor() {
     super({
-      packageName: PACKAGE_NAME || 'dev.augmentos.livetranslation',
-      apiKey: AUGMENTOS_API_KEY || 'test_key',
+      packageName: PACKAGE_NAME,
+      apiKey: AUGMENTOS_API_KEY,
       port: PORT,
       publicDir: path.join(__dirname, './public'),
     });
@@ -412,6 +412,8 @@ const expressApp = liveTranslationApp.getExpressApp();
 expressApp.post('/settings', async (req: any, res: any) => {
   try {
     const { userIdForSettings, settings } = req.body;
+
+    console.log(`[Settings endpoint]: userIdForSettings=${userIdForSettings}, settings=${settings}`);
 
     if (!userIdForSettings || !Array.isArray(settings)) {
       return res.status(400).json({ error: 'Missing userId or settings array in payload' });
