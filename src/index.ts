@@ -21,7 +21,7 @@ const defaultSettings = {
   translateLanguage: tpaConfig.settings.find((s: any) => s.key === 'translate_language')?.defaultValue || 'English',
   lineWidth: tpaConfig.settings.find((s: any) => s.key === 'line_width')?.defaultValue || 'Medium',
   numberOfLines: tpaConfig.settings.find((s: any) => s.key === 'number_of_lines')?.defaultValue || 3,
-  displayMode: tpaConfig.settings.find((s: any) => s.key === 'display_mode')?.defaultValue || 'translations'
+  displayMode: tpaConfig.settings.find((s: any) => s.key === 'display_mode')?.defaultValue || 'everything'
 };
 
 // Configuration constants
