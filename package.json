@@ -1,5 +1,5 @@
 {
-  "name": "@augmentos/livetrasnlation",
+  "name": "@augmentos/livetranslation",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -31,7 +31,7 @@
     "ghcr:release": "npm run ghcr:build && npm run ghcr:push"
   },
   "dependencies": {
-    "@augmentos/sdk": "^1.1.2",
+    "@augmentos/sdk": "^1.1.4",
     "@node-rs/jieba": "^2.0.1",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",
