@@ -92,6 +92,7 @@ export function languageToLocale(localeString: string): string {
         case "English (Tanzania)":
             return "en-TZ";
         case "English":
+        case "English (United States)":
             return "en-US";
         case "English (South Africa)":
             return "en-ZA";
@@ -189,7 +190,6 @@ export function languageToLocale(localeString: string): string {
         case "Japanese":
         case "Japanese (Japan)":
             return "ja-JP";
-        case "Javanese":
         case "Javanese (Latin, Indonesia)":
             return "jv-ID";
         case "Georgian (Georgia)":
@@ -394,6 +394,42 @@ export function languageToLocale(localeString: string): string {
             return "ms-MY";
         case "Uzbek":
             return "uz-UZ";
+        case "Afrikaans":
+            return "af-ZA"; // Best guess: South Africa
+        case "Albanian":
+            return "sq-AL"; // Albania
+        case "Assamese":
+            return "as-IN"; // India (best guess)
+        case "Azerbaijani":
+            return "az-AZ"; // Azerbaijan
+        case "Filipino":
+            return "fil-PH"; // Philippines
+        case "isiZulu":
+            return "zu-ZA"; // South Africa
+        case "Kazakh":
+            return "kk-KZ"; // Kazakhstan
+        case "Latvian":
+            return "lv-LV"; // Latvia
+        case "Lithuanian":
+            return "lt-LT"; // Lithuania
+        case "Macedonian":
+            return "mk-MK"; // North Macedonia
+        case "Maltese":
+            return "mt-MT"; // Malta
+        case "Norwegian Bokmål":
+            return "nb-NO"; // Norway
+        case "Pashto":
+            return "ps-AF"; // Afghanistan
+        case "Serbian":
+            return "sr-RS"; // Serbia
+        case "Sinhala":
+            return "si-LK"; // Sri Lanka
+        case "Slovak":
+            return "sk-SK"; // Slovakia
+        case "Slovenian":
+            return "sl-SI"; // Slovenia
+        case "Somali":
+            return "so-SO"; // Somalia
         default:
             return "en-US";
     }
