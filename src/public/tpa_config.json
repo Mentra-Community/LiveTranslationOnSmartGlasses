@@ -11,10 +11,10 @@
             "key": "transcribe_language",
             "type": "select_with_search",
             "label": "Transcribe language",
-            "defaultValue": "Chinese (Hanzi)",
+            "defaultValue": "Chinese (Mandarin)",
             "options": [
                 { "label": "English", "value": "English" },
-                { "label": "Chinese (Hanzi)", "value": "Chinese (Hanzi)" },
+                { "label": "Chinese (Mandarin)", "value": "Chinese (Mandarin)" },
                 { "label": "Spanish", "value": "Spanish" },
                 { "label": "Portuguese", "value": "Portuguese" },
                 { "label": "French", "value": "French" },

@@ -290,6 +290,7 @@ export function languageToLocale(localeString: string): string {
         case "Chinese":
         case "Chinese (Pinyin)":
         case "Chinese (Hanzi)":
+        case "Chinese (Mandarin)":
         case "Chinese (Mandarin, Simplified)":
             return "zh-CN";
         case "Chinese (Jilu Mandarin, Simplified)":
