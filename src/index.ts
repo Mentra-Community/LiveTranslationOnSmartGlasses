@@ -8,7 +8,6 @@ import {
 } from '@augmentos/sdk';
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
-import axios from 'axios';
 import fs from 'fs';
 
 // Load TPA config to get default values
@@ -406,7 +405,9 @@ class LiveTranslationApp extends TpaServer {
     });
   }
 
-  // Helper method to get active session for a user
+  /**
+   * Helper method to get active session for a user
+   */
   public getActiveSessionForUser(userId: string): { session: TpaSession, sessionId: string } | null {
     return this.activeUserSessions.get(userId) || null;
   }

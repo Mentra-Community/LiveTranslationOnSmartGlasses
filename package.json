@@ -36,6 +36,7 @@
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",
     "@types/ws": "^8.18.0",
+    "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
     "path": "^0.12.7",
     "pinyin-pro": "^3.26.0",
