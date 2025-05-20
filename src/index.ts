@@ -38,14 +38,6 @@ if (!PACKAGE_NAME) {
   throw new Error('PACKAGE_NAME environment variable is required.');
 }
 
-// Verify env vars are set
-if (!AUGMENTOS_API_KEY) {
-  throw new Error('AUGMENTOS_API_KEY environment variable is required.');
-}
-if (!PACKAGE_NAME) {
-  throw new Error('PACKAGE_NAME environment variable is required.');
-}
-
 // User transcript processors map
 const userTranscriptProcessors: Map<string, TranscriptProcessor> = new Map();
 // Map to track the active languages for each user (source and target)
@@ -70,8 +62,6 @@ class LiveTranslationApp extends TpaServer {
 
   constructor() {
     super({
-      packageName: PACKAGE_NAME!,
-      apiKey: AUGMENTOS_API_KEY!,
       packageName: PACKAGE_NAME!,
       apiKey: AUGMENTOS_API_KEY!,
       port: PORT,
