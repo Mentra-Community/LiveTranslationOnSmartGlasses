@@ -25,9 +25,18 @@ const defaultSettings = {
 
 // Configuration constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
+const CLOUD_HOST_NAME = process.env.CLOUD_HOST_NAME;
 const PACKAGE_NAME = process.env.PACKAGE_NAME;
 const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY; // In production, this would be securely stored
 const MAX_FINAL_TRANSCRIPTS = 10;
+
+// Verify env vars are set
+if (!AUGMENTOS_API_KEY) {
+  throw new Error('AUGMENTOS_API_KEY environment variable is required.');
+}
+if (!PACKAGE_NAME) {
+  throw new Error('PACKAGE_NAME environment variable is required.');
+}
 
 // Verify env vars are set
 if (!AUGMENTOS_API_KEY) {
@@ -61,6 +70,8 @@ class LiveTranslationApp extends TpaServer {
 
   constructor() {
     super({
+      packageName: PACKAGE_NAME!,
+      apiKey: AUGMENTOS_API_KEY!,
       packageName: PACKAGE_NAME!,
       apiKey: AUGMENTOS_API_KEY!,
       port: PORT,
@@ -119,7 +130,11 @@ class LiveTranslationApp extends TpaServer {
   /**
    * Set up handlers for settings changes
    */
-  private setupSettingsHandlers(session: TpaSession, sessionId: string, userId: string): void {
+  private setupSettingsHandlers(
+    session: TpaSession,
+    sessionId: string,
+    userId: string
+  ): void {
     // Handle line width changes
     session.settings.onValueChange('line_width', (newValue, oldValue) => {
       console.log(`Line width changed for user ${userId}: ${oldValue} -> ${newValue}`);
@@ -132,13 +147,13 @@ class LiveTranslationApp extends TpaServer {
       this.applySettings(session, sessionId, userId);
     });
 
-    // Handle transcribe language changes
+    // Handle source language changes
     session.settings.onValueChange('transcribe_language', (newValue, oldValue) => {
       console.log(`Transcribe language changed for user ${userId}: ${oldValue} -> ${newValue}`);
       this.applySettings(session, sessionId, userId);
     });
 
-    // Handle translate language changes
+    // Handle target language changes
     session.settings.onValueChange('translate_language', (newValue, oldValue) => {
       console.log(`Translate language changed for user ${userId}: ${oldValue} -> ${newValue}`);
       this.applySettings(session, sessionId, userId);
@@ -152,29 +167,22 @@ class LiveTranslationApp extends TpaServer {
   }
 
   /**
-   * Apply settings from the session to the transcript processor and translation handlers
+   * Apply settings from the session to the transcript processor
    */
   private async applySettings(
     session: TpaSession,
     sessionId: string,
     userId: string
-  ): Promise<any> {
+  ): Promise<void> {
     try {
-      // Extract settings directly from session settings
+      // Extract settings
       const sourceLang = session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
       const targetLang = session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+      const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
-      const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
-
-      userDisplayModes.set(userId, displayMode);
-
-      // Convert to locales for SDK
-      const sourceLocale = languageToLocale(sourceLang);
-      const targetLocale = languageToLocale(targetLang);
-
-      // Get previous processor to check for language changes and preserve history
-      const previousTranscriptProcessor = userTranscriptProcessors.get(userId);
+      
+      // Get previous values for comparison
       const previousSourceLang = userSourceLanguages.get(userId);
       const previousTargetLang = userTargetLanguages.get(userId);
       const languageChanged = (previousSourceLang && previousSourceLang !== sourceLang) || 
@@ -185,6 +193,10 @@ class LiveTranslationApp extends TpaServer {
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, displayMode);
       
+      // Convert locales
+      const sourceLocale = languageToLocale(sourceLang);
+      const targetLocale = languageToLocale(targetLang);
+      
       // Process line width and other formatting settings
       const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
       const lineWidth = convertLineWidth(lineWidthSetting, isChineseTarget);
@@ -193,6 +205,9 @@ class LiveTranslationApp extends TpaServer {
       if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = defaultSettings.numberOfLines;
 
       console.log(`Applied settings for user ${userId}: sourceLang=${sourceLang}, targetLang=${targetLang}, displayMode=${displayMode}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}`);
+      
+      // Get previous processor to check for language changes and preserve history
+      const previousTranscriptProcessor = userTranscriptProcessors.get(userId);
       
       // Create new processor with the settings
       const newProcessor = new TranscriptProcessor(lineWidth, numberOfLines, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
@@ -215,7 +230,7 @@ class LiveTranslationApp extends TpaServer {
       const formattedTranscript = newProcessor.getFormattedTranscriptHistory();
       this.showTranscriptsToUser(session, formattedTranscript, true);
 
-      // Set up translation handler for the language pair
+      // Setup handler for translation data
       console.log(`Setting up translation handlers for session ${sessionId} (${sourceLocale}->${targetLocale})`);
       
       // Create handler for the language pair
@@ -413,8 +428,6 @@ const liveTranslationApp = new LiveTranslationApp();
 
 // Add health check endpoint
 const expressApp = liveTranslationApp.getExpressApp();
-
-// Add health check endpoint
 expressApp.get('/health', (req: any, res: any) => {
   res.json({ status: 'healthy', app: PACKAGE_NAME });
 });
