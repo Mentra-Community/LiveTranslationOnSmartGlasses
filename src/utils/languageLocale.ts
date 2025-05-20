@@ -1,9 +1,13 @@
 export function languageToLocale(localeString: string): string {
     switch (localeString) {
+        case "Afrikaans":
         case "Afrikaans (South Africa)":
             return "af-ZA";
+        case "Amharic":
         case "Amharic (Ethiopia)":
             return "am-ET";
+        case "Arabic":
+        case "Standard Arabic":
         case "Arabic (United Arab Emirates)":
             return "ar-AE";
         case "Arabic (Bahrain)":
@@ -40,20 +44,26 @@ export function languageToLocale(localeString: string): string {
             return "ar-TN";
         case "Arabic (Yemen)":
             return "ar-YE";
+        case "Azerbaijani":
         case "Azerbaijani (Latin, Azerbaijan)":
             return "az-AZ";
+        case "Bulgarian":
         case "Bulgarian (Bulgaria)":
             return "bg-BG";
+        case "Bengali":
         case "Bengali (India)":
             return "bn-IN";
+        case "Bosnian":
         case "Bosnian (Bosnia and Herzegovina)":
             return "bs-BA";
         case "Catalan":
             return "ca-ES";
+        case "Czech":
         case "Czech (Czechia)":
             return "cs-CZ";
-        case "Welsh (United Kingdom)":
+        case "Welsh":
             return "cy-GB";
+        case "Danish":
         case "Danish (Denmark)":
             return "da-DK";
         case "German (Austria)":
@@ -63,6 +73,7 @@ export function languageToLocale(localeString: string): string {
         case "German":
         case "German (Germany)":
             return "de-DE";
+        case "Greek":
         case "Greek (Greece)":
             return "el-GR";
         case "English (Australia)":
@@ -141,15 +152,18 @@ export function languageToLocale(localeString: string): string {
             return "es-UY";
         case "Spanish (Venezuela)":
             return "es-VE";
+        case "Estonian":
         case "Estonian (Estonia)":
             return "et-EE";
         case "Basque":
             return "eu-ES";
+        case "Persian":
         case "Persian (Iran)":
             return "fa-IR";
         case "Finnish":
         case "Finnish (Finland)":
             return "fi-FI";
+        case "Filipino":
         case "Filipino (Philippines)":
             return "fil-PH";
         case "French (Belgium)":
@@ -161,25 +175,32 @@ export function languageToLocale(localeString: string): string {
         case "French":
         case "French (France)":
             return "fr-FR";
+        case "Irish":
         case "Irish (Ireland)":
             return "ga-IE";
         case "Galician":
             return "gl-ES";
+        case "Gujarati":
         case "Gujarati (India)":
             return "gu-IN";
         case "Hebrew":
         case "Hebrew (Israel)":
             return "he-IL";
+        case "Hindi":
         case "Hindi (India)":
             return "hi-IN";
-        case "Croatian (Croatia)":
+        case "Croatian":
             return "hr-HR";
+        case "Hungarian":
         case "Hungarian (Hungary)":
             return "hu-HU";
+        case "Armenian":
         case "Armenian (Armenia)":
             return "hy-AM";
+        case "Indonesian":
         case "Indonesian (Indonesia)":
             return "id-ID";
+        case "Icelandic":
         case "Icelandic (Iceland)":
             return "is-IS";
         case "Italian (Switzerland)":
@@ -190,41 +211,58 @@ export function languageToLocale(localeString: string): string {
         case "Japanese":
         case "Japanese (Japan)":
             return "ja-JP";
+        case "Javanese":
         case "Javanese (Latin, Indonesia)":
             return "jv-ID";
+        case "Georgian":
         case "Georgian (Georgia)":
             return "ka-GE";
+        case "Kazakh":
         case "Kazakh (Kazakhstan)":
             return "kk-KZ";
+        case "Khmer":
         case "Khmer (Cambodia)":
             return "km-KH";
+        case "Kannada":
         case "Kannada (India)":
             return "kn-IN";
         case "Korean":
         case "Korean (Korea)":
             return "ko-KR";
+        case "Lao":
         case "Lao (Laos)":
             return "lo-LA";
+        case "Lithuanian":
         case "Lithuanian (Lithuania)":
             return "lt-LT";
+        case "Latvian":
         case "Latvian (Latvia)":
             return "lv-LV";
+        case "Macedonian":
         case "Macedonian (North Macedonia)":
             return "mk-MK";
+        case "Malayalam":
         case "Malayalam (India)":
             return "ml-IN";
+        case "Mongolian":
         case "Mongolian (Mongolia)":
             return "mn-MN";
+        case "Marathi":
         case "Marathi (India)":
             return "mr-IN";
+        case "Malay":
         case "Malay (Malaysia)":
             return "ms-MY";
+        case "Maltese":
         case "Maltese (Malta)":
             return "mt-MT";
+        case "Burmese":
         case "Burmese (Myanmar)":
             return "my-MM";
+        case "Norwegian Bokmål":
         case "Norwegian Bokmål (Norway)":
             return "nb-NO";
+        case "Nepali":
         case "Nepali (Nepal)":
             return "ne-NP";
         case "Dutch":
@@ -232,10 +270,12 @@ export function languageToLocale(localeString: string): string {
             return "nl-BE";
         case "Dutch (Netherlands)":
             return "nl-NL";
-        case "Punjabi (India)":
+        case "Punjabi":
             return "pa-IN";
+        case "Polish":
         case "Polish (Poland)":
             return "pl-PL";
+        case "Pashto":
         case "Pashto (Afghanistan)":
             return "ps-AF";
         case "Portuguese":
@@ -243,44 +283,58 @@ export function languageToLocale(localeString: string): string {
             return "pt-BR";
         case "Portuguese (Portugal)":
             return "pt-PT";
+        case "Romanian":
         case "Romanian (Romania)":
             return "ro-RO";
         case "Russian":
         case "Russian (Russia)":
             return "ru-RU";
+        case "Sinhala":
         case "Sinhala (Sri Lanka)":
             return "si-LK";
+        case "Slovak":
         case "Slovak (Slovakia)":
             return "sk-SK";
+        case "Slovenian":
         case "Slovenian (Slovenia)":
             return "sl-SI";
+        case "Somali":
         case "Somali (Somalia)":
             return "so-SO";
+        case "Albanian":
         case "Albanian (Albania)":
             return "sq-AL";
-        case "Serbian (Cyrillic, Serbia)":
+        case "Serbian":
             return "sr-RS";
+        case "Swedish":
         case "Swedish (Sweden)":
             return "sv-SE";
+        case "Swahili":
         case "Swahili (Kenya)":
             return "sw-KE";
         case "Swahili (Tanzania)":
             return "sw-TZ";
+        case "Tamil":
         case "Tamil (India)":
             return "ta-IN";
-        case "Telugu (India)":
+        case "Telugu":
             return "te-IN";
+        case "Thai":
         case "Thai (Thailand)":
             return "th-TH";
         case "Turkish":
         case "Turkish (Türkiye)":
             return "tr-TR";
+        case "Ukrainian":
         case "Ukrainian (Ukraine)":
             return "uk-UA";
+        case "Urdu":
         case "Urdu (India)":
             return "ur-IN";
+        case "Uzbek":
         case "Uzbek (Latin, Uzbekistan)":
             return "uz-UZ";
+        case "Vietnamese":
         case "Vietnamese (Vietnam)":
             return "vi-VN";
         case "Chinese (Wu, Simplified)":
@@ -290,7 +344,7 @@ export function languageToLocale(localeString: string): string {
         case "Chinese":
         case "Chinese (Pinyin)":
         case "Chinese (Hanzi)":
-        case "Chinese (Mandarin, Simplified)":
+        case "Chinese (Mandarin)":
             return "zh-CN";
         case "Chinese (Jilu Mandarin, Simplified)":
             return "zh-CN-shandong";
@@ -300,7 +354,24 @@ export function languageToLocale(localeString: string): string {
             return "zh-HK";
         case "Chinese (Taiwanese Mandarin, Traditional)":
             return "zh-TW";
+        case "Zulu":
         case "Zulu (South Africa)":
+            return "zu-ZA";
+        case "Hausa":
+            return "ha-NG";
+        case "Odia":
+            return "or-IN";
+        case "Tagalog":
+            return "fil-PH";
+        case "Yoruba":
+            return "yo-NG";
+        case "Igbo":
+            return "ig-NG";
+        case "Bhojpuri":
+            return "hi-IN";
+        case "Assamese":
+            return "as-IN";
+        case "isiZulu":
             return "zu-ZA";
         default:
             return "en-US";

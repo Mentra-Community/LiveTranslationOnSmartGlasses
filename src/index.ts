@@ -25,9 +25,17 @@ const defaultSettings = {
 
 // Configuration constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
-const PACKAGE_NAME = process.env.PACKAGE_NAME || "dev.augmentos.livetranslation";
-const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY || 'test_key'; // In production, this would be securely stored
+const PACKAGE_NAME = process.env.PACKAGE_NAME;
+const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY; // In production, this would be securely stored
 const MAX_FINAL_TRANSCRIPTS = 10;
+
+// Verify env vars are set
+if (!AUGMENTOS_API_KEY) {
+  throw new Error('AUGMENTOS_API_KEY environment variable is required.');
+}
+if (!PACKAGE_NAME) {
+  throw new Error('PACKAGE_NAME environment variable is required.');
+}
 
 // User transcript processors map
 const userTranscriptProcessors: Map<string, TranscriptProcessor> = new Map();
@@ -53,8 +61,8 @@ class LiveTranslationApp extends TpaServer {
 
   constructor() {
     super({
-      packageName: PACKAGE_NAME,
-      apiKey: AUGMENTOS_API_KEY,
+      packageName: PACKAGE_NAME!,
+      apiKey: AUGMENTOS_API_KEY!,
       port: PORT,
       publicDir: path.join(__dirname, './public'),
     });
@@ -172,17 +180,20 @@ class LiveTranslationApp extends TpaServer {
       const languageChanged = (previousSourceLang && previousSourceLang !== sourceLang) || 
                               (previousTargetLang && previousTargetLang !== targetLang);
       
-      // Store the current language settings
+      // Update stored settings
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
-
+      userDisplayModes.set(userId, displayMode);
+      
       // Process line width and other formatting settings
       const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
       const lineWidth = convertLineWidth(lineWidthSetting, isChineseTarget);
       
-      let numberOfLines = numberOfLinesSetting;
+      let numberOfLines = typeof numberOfLinesSetting === 'number' ? numberOfLinesSetting : parseInt(numberOfLinesSetting);
       if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = defaultSettings.numberOfLines;
 
+      console.log(`Applied settings for user ${userId}: sourceLang=${sourceLang}, targetLang=${targetLang}, displayMode=${displayMode}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}`);
+      
       // Create new processor with the settings
       const newProcessor = new TranscriptProcessor(lineWidth, numberOfLines, MAX_FINAL_TRANSCRIPTS, isChineseTarget);
 
@@ -219,14 +230,7 @@ class LiveTranslationApp extends TpaServer {
       this.addCleanupHandler(cleanup);
       
       console.log(`Subscribed to translations from ${sourceLocale} to ${targetLocale} for user ${userId}`);
-
-      // Return status for API endpoint response
-      return {
-        status: 'Settings processed successfully',
-        languageChanged: languageChanged,
-        transcriptsPreserved: !languageChanged,
-        sessionUpdated: true
-      };
+      
     } catch (error) {
       console.error(`Error applying settings for user ${userId}:`, error);
       throw error;
@@ -407,7 +411,7 @@ class LiveTranslationApp extends TpaServer {
 // Create and start the app
 const liveTranslationApp = new LiveTranslationApp();
 
-// Add settings endpoint
+// Add health check endpoint
 const expressApp = liveTranslationApp.getExpressApp();
 
 // Add health check endpoint
