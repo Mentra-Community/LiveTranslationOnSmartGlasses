@@ -8,6 +8,8 @@ import {
 } from '@augmentos/sdk';
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
+import { ConfidenceCalculator, ConfidenceHeuristic } from './utils/confidenceHeuristics';
+import axios from 'axios';
 import fs from 'fs';
 
 // Load TPA config to get default values
@@ -20,7 +22,8 @@ const defaultSettings = {
   translateLanguage: tpaConfig.settings.find((s: any) => s.key === 'translate_language')?.defaultValue || 'English',
   lineWidth: tpaConfig.settings.find((s: any) => s.key === 'line_width')?.defaultValue || 'Medium',
   numberOfLines: tpaConfig.settings.find((s: any) => s.key === 'number_of_lines')?.defaultValue || 3,
-  displayMode: tpaConfig.settings.find((s: any) => s.key === 'display_mode')?.defaultValue || 'everything'
+  displayMode: tpaConfig.settings.find((s: any) => s.key === 'display_mode')?.defaultValue || 'everything',
+  confidenceHeuristic: tpaConfig.settings.find((s: any) => s.key === 'confidence_heuristic')?.defaultValue || 'None'
 };
 
 // Configuration constants
@@ -44,6 +47,7 @@ const userTranscriptProcessors: Map<string, TranscriptProcessor> = new Map();
 const userSourceLanguages: Map<string, string> = new Map();
 const userTargetLanguages: Map<string, string> = new Map();
 const userDisplayModes: Map<string, string> = new Map();
+const userConfidenceCalculators: Map<string, ConfidenceCalculator> = new Map();
 
 // For debouncing transcripts per session
 interface TranscriptDebouncer {
@@ -106,6 +110,7 @@ class LiveTranslationApp extends TpaServer {
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, defaultSettings.displayMode);
+      userConfidenceCalculators.set(userId, new ConfidenceCalculator(defaultSettings.confidenceHeuristic as ConfidenceHeuristic));
 
       // Setup handler for translation data
       const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
@@ -154,6 +159,12 @@ class LiveTranslationApp extends TpaServer {
       console.log(`Display mode changed for user ${userId}: ${oldValue} -> ${newValue}`);
       this.applySettings(session, sessionId, userId);
     });
+
+    // Handle confidence heuristic changes
+    session.settings.onValueChange('confidence_heuristic', (newValue, oldValue) => {
+      console.log(`Confidence heuristic changed for user ${userId}: ${oldValue} -> ${newValue}`);
+      this.applySettings(session, sessionId, userId);
+    });
   }
 
   /**
@@ -171,6 +182,7 @@ class LiveTranslationApp extends TpaServer {
       const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
+      const confidenceHeuristicSetting = session.settings.get<string>('confidence_heuristic', defaultSettings.confidenceHeuristic) as ConfidenceHeuristic;
       
       // Get previous values for comparison
       const previousSourceLang = userSourceLanguages.get(userId);
@@ -183,6 +195,15 @@ class LiveTranslationApp extends TpaServer {
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, displayMode);
       
+      // Update or initialize confidence calculator
+      let confidenceCalculator = userConfidenceCalculators.get(userId);
+      if (confidenceCalculator) {
+        confidenceCalculator.setHeuristic(confidenceHeuristicSetting);
+      } else {
+        confidenceCalculator = new ConfidenceCalculator(confidenceHeuristicSetting);
+        userConfidenceCalculators.set(userId, confidenceCalculator);
+      }
+      
       // Convert locales
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
@@ -194,7 +215,7 @@ class LiveTranslationApp extends TpaServer {
       let numberOfLines = typeof numberOfLinesSetting === 'number' ? numberOfLinesSetting : parseInt(numberOfLinesSetting);
       if (isNaN(numberOfLines) || numberOfLines < 1) numberOfLines = defaultSettings.numberOfLines;
 
-      console.log(`Applied settings for user ${userId}: sourceLang=${sourceLang}, targetLang=${targetLang}, displayMode=${displayMode}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}`);
+      console.log(`Applied settings for user ${userId}: sourceLang=${sourceLang}, targetLang=${targetLang}, displayMode=${displayMode}, lineWidth=${lineWidth}, numberOfLines=${numberOfLines}, confidenceHeuristic=${confidenceHeuristicSetting}`);
       
       // Get previous processor to check for language changes and preserve history
       const previousTranscriptProcessor = userTranscriptProcessors.get(userId);
@@ -211,6 +232,7 @@ class LiveTranslationApp extends TpaServer {
         console.log(`Preserved ${previousHistory.length} transcripts after settings change`);
       } else if (languageChanged) {
         console.log(`Cleared transcript history due to language change`);
+        confidenceCalculator.resetState();
       }
 
       // Update the processor
@@ -285,6 +307,12 @@ class LiveTranslationApp extends TpaServer {
       userTranscriptProcessors.set(userId, transcriptProcessor);
     }
 
+    let confidenceCalculator = userConfidenceCalculators.get(userId);
+    if (!confidenceCalculator) {
+        confidenceCalculator = new ConfidenceCalculator(defaultSettings.confidenceHeuristic as ConfidenceHeuristic);
+        userConfidenceCalculators.set(userId, confidenceCalculator);
+    }
+
     const isFinal = translationData.isFinal;
     let newText = translationData.text;
     const sourceLanguage = userSourceLanguages.get(userId) || defaultSettings.transcribeLanguage;
@@ -309,6 +337,13 @@ class LiveTranslationApp extends TpaServer {
       newText = pinyinTranscript;
     }
 
+    let confidenceScore: number | null = null;
+    if (!isFinal) {
+      confidenceScore = confidenceCalculator.calculateConfidence(newText);
+    } else {
+      confidenceCalculator.resetState();
+    }
+
     // Process the new translation text
     transcriptProcessor.processString(newText, isFinal);
 
@@ -321,6 +356,9 @@ class LiveTranslationApp extends TpaServer {
     } else {
       // For non-final, combine history with current partial
       const combinedTranscriptHistory = transcriptProcessor.getCombinedTranscriptHistory();
+      // Confidence is calculated but not shown
+      // const prefix = confidenceScore !== null && confidenceCalculator['heuristic'] !== 'None' ? `[${confidenceScore.toFixed(2)}] ` : '';
+      // const textToProcess = `${combinedTranscriptHistory} ${prefix}${newText}`;
       const textToProcess = `${combinedTranscriptHistory} ${newText}`;
       textToDisplay = transcriptProcessor.getFormattedPartialTranscript(textToProcess);
     }

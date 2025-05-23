@@ -257,6 +257,21 @@
                       "value": "everything"
                   }
               ]
+          },
+          {
+            "key": "confidence_heuristic",
+            "type": "select",
+            "label": "Interim Confidence Heuristic",
+            "defaultValue": "None",
+            "options": [
+                { "label": "None", "value": "None" },
+                { "label": "Word Stability", "value": "WordStability" },
+                { "label": "Prefix Retention", "value": "PrefixRetention" },
+                { "label": "Edit Distance", "value": "EditDistance" },
+                { "label": "Word Duration", "value": "WordDuration" },
+                { "label": "Trailing Word Decay", "value": "TrailingWordDecay" },
+                { "label": "Hybrid", "value": "Hybrid" }
+            ]
           }
     ]
 }
