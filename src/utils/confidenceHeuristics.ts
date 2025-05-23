@@ -53,7 +53,12 @@ export class ConfidenceCalculator {
     this.transcriptHistory = [];
   }
 
-  public calculateConfidence(currentTranscript: string): number | null {
+  /**
+   * Main entry point for confidence calculation.
+   * @param currentTranscript The current interim transcript string
+   * @param isHanzi If true, treat each character as a word (for Hanzi/Chinese/Japanese)
+   */
+  public calculateConfidence(currentTranscript: string, isHanzi: boolean = false): number | null {
     if (this.heuristic === 'None') {
       return null;
     }
@@ -68,28 +73,40 @@ export class ConfidenceCalculator {
 
     switch (this.heuristic) {
       case 'WordStability':
-        score = this.calculateWordStability(currentTranscript);
+        score = this.calculateWordStability(currentTranscript, isHanzi);
         break;
       case 'PrefixRetention':
-        score = this.calculatePrefixRetention(currentTranscript);
+        score = this.calculatePrefixRetention(currentTranscript, isHanzi);
         break;
       case 'EditDistance':
-        score = this.calculateEditDistanceConfidence(currentTranscript);
+        score = this.calculateEditDistanceConfidence(currentTranscript, isHanzi);
         break;
       case 'WordDuration':
-        score = this.calculateWordDuration(currentTranscript, currentTime);
+        score = this.calculateWordDuration(currentTranscript, currentTime, isHanzi);
         break;
       case 'TrailingWordDecay':
-        score = this.calculateTrailingWordDecay(currentTranscript);
+        score = this.calculateTrailingWordDecay(currentTranscript, isHanzi);
         break;
       case 'Hybrid':
-        score = this.calculateHybridScore(currentTranscript, currentTime);
+        score = this.calculateHybridScore(currentTranscript, currentTime, isHanzi);
         break;
     }
 
     this.previousTranscript = currentTranscript;
-    this.previousWords = currentTranscript.split(/\s+/);
+    this.previousWords = this.splitWords(currentTranscript, isHanzi);
     return score;
+  }
+
+  /**
+   * Utility to split transcript into words or characters depending on isHanzi.
+   */
+  private splitWords(text: string, isHanzi: boolean): string[] {
+    if (isHanzi) {
+      // Split into array of characters, filter out whitespace
+      return text.split('').filter(c => c.trim().length > 0);
+    } else {
+      return text.split(/\s+/);
+    }
   }
 
   /**
@@ -98,8 +115,8 @@ export class ConfidenceCalculator {
    * How: Tracks a buffer of words and their stability counts. The score is the fraction of words that are stable (unchanged from previous update).
    * Best for: Highlighting which words in the interim transcript are most reliable, especially for word-level confidence visualization.
    */
-  private calculateWordStability(currentTranscript: string): number {
-    const currentWords = currentTranscript.split(/\s+/);
+  private calculateWordStability(currentTranscript: string, isHanzi: boolean = false): number {
+    const currentWords = this.splitWords(currentTranscript, isHanzi);
     let stableWords = 0;
     const newWordStabilityBuffer: WordDetail[] = [];
 
@@ -122,18 +139,34 @@ export class ConfidenceCalculator {
    * How: Compares the current and previous transcript character by character from the start, counting the length of the matching prefix.
    * Best for: Determining the stable, high-confidence region at the start of the transcript, ideal for AR captions where the beginning is most visible.
    */
-  private calculatePrefixRetention(currentTranscript: string): number {
+  private calculatePrefixRetention(currentTranscript: string, isHanzi: boolean = false): number {
     if (!this.previousTranscript) return 0;
     let retainedLength = 0;
-    const minLen = Math.min(currentTranscript.length, this.previousTranscript.length);
-    for (let i = 0; i < minLen; i++) {
-      if (currentTranscript[i] === this.previousTranscript[i]) {
-        retainedLength++;
-      } else {
-        break;
+    if (isHanzi) {
+      // Compare by character
+      const currChars = this.splitWords(currentTranscript, true);
+      const prevChars = this.splitWords(this.previousTranscript, true);
+      const minLen = Math.min(currChars.length, prevChars.length);
+      for (let i = 0; i < minLen; i++) {
+        if (currChars[i] === prevChars[i]) {
+          retainedLength++;
+        } else {
+          break;
+        }
       }
+      return currChars.length > 0 ? retainedLength / currChars.length : 0;
+    } else {
+      // Default: character-based prefix retention
+      const minLen = Math.min(currentTranscript.length, this.previousTranscript.length);
+      for (let i = 0; i < minLen; i++) {
+        if (currentTranscript[i] === this.previousTranscript[i]) {
+          retainedLength++;
+        } else {
+          break;
+        }
+      }
+      return currentTranscript.length > 0 ? retainedLength / currentTranscript.length : 0;
     }
-    return currentTranscript.length > 0 ? retainedLength / currentTranscript.length : 0;
   }
 
   /**
@@ -142,11 +175,20 @@ export class ConfidenceCalculator {
    * How: Computes the normalized Levenshtein (edit) distance between the current and previous transcript. Lower change = higher confidence.
    * Best for: Quantifying how much the transcript is changing as a whole, useful for gating display or triggering UI updates only when stable.
    */
-  private calculateEditDistanceConfidence(currentTranscript: string): number {
+  private calculateEditDistanceConfidence(currentTranscript: string, isHanzi: boolean = false): number {
     if (!this.previousTranscript) return 0;
-    const distance = levenshteinDistance(currentTranscript, this.previousTranscript);
-    const maxLength = Math.max(currentTranscript.length, this.previousTranscript.length, 1);
-    return 1 - (distance / maxLength);
+    if (isHanzi) {
+      // Use character arrays for Hanzi
+      const currChars = this.splitWords(currentTranscript, true).join('');
+      const prevChars = this.splitWords(this.previousTranscript, true).join('');
+      const distance = levenshteinDistance(currChars, prevChars);
+      const maxLength = Math.max(currChars.length, prevChars.length, 1);
+      return 1 - (distance / maxLength);
+    } else {
+      const distance = levenshteinDistance(currentTranscript, this.previousTranscript);
+      const maxLength = Math.max(currentTranscript.length, this.previousTranscript.length, 1);
+      return 1 - (distance / maxLength);
+    }
   }
 
   /**
@@ -155,8 +197,8 @@ export class ConfidenceCalculator {
    * How: Tracks timestamps for when each word first appeared and was last seen unchanged. The score is the average duration (weighted by stability) that words have persisted.
    * Best for: Smoothing confidence over time, and for visualizations that fade in or highlight words as they become more reliable.
    */
-  private calculateWordDuration(currentTranscript: string, currentTime: number): number {
-    const currentWords = currentTranscript.split(/\s+/);
+  private calculateWordDuration(currentTranscript: string, currentTime: number, isHanzi: boolean = false): number {
+    const currentWords = this.splitWords(currentTranscript, isHanzi);
     if (currentWords.length === 0) return 0;
 
     let totalWeightedDuration = 0;
@@ -193,8 +235,8 @@ export class ConfidenceCalculator {
    * How: Assigns higher confidence to words closer to the start, decaying toward the end. The score is the average position-based weight.
    * Best for: Visually de-emphasizing or fading out the trailing, unstable part of interim transcripts, matching typical ASR behavior.
    */
-  private calculateTrailingWordDecay(currentTranscript: string): number {
-    const words = currentTranscript.split(/\s+/);
+  private calculateTrailingWordDecay(currentTranscript: string, isHanzi: boolean = false): number {
+    const words = this.splitWords(currentTranscript, isHanzi);
     if (words.length === 0) return 0;
     let score = 0;
     words.forEach((word, index) => {
@@ -209,24 +251,17 @@ export class ConfidenceCalculator {
    * How: Combines word stability, prefix retention, edit distance, and trailing word decay with tunable weights.
    * Best for: General-purpose confidence scoring when you want to balance stability, prefix trust, and overall volatility.
    */
-  private calculateHybridScore(currentTranscript: string, currentTime: number): number {
-    const wordStabilityScore = this.calculateWordStability(currentTranscript);
-    const prefixRetentionScore = this.calculatePrefixRetention(currentTranscript);
-    const editDistanceScore = this.calculateEditDistanceConfidence(currentTranscript);
-    // For position_from_end_weight (TrailingWordDecay), a higher score means more confident (closer to start)
-    // So we can use calculateTrailingWordDecay directly as it gives higher scores to words at the beginning.
-    const positionFromEndWeight = this.calculateTrailingWordDecay(currentTranscript);
-
-    // Word duration needs to be carefully integrated, as its scale might differ.
-    // Let's use its raw calculation for now and adjust weights if necessary.
-    // const wordDurationScore = this.calculateWordDuration(currentTranscript, currentTime);
-
+  private calculateHybridScore(currentTranscript: string, currentTime: number, isHanzi: boolean = false): number {
+    const wordStabilityScore = this.calculateWordStability(currentTranscript, isHanzi);
+    const prefixRetentionScore = this.calculatePrefixRetention(currentTranscript, isHanzi);
+    const editDistanceScore = this.calculateEditDistanceConfidence(currentTranscript, isHanzi);
+    const positionFromEndWeight = this.calculateTrailingWordDecay(currentTranscript, isHanzi);
+    // Word duration could be added with a weight if desired
     const finalScore = (
       0.4 * wordStabilityScore +
       0.3 * prefixRetentionScore +
       0.2 * editDistanceScore +
       0.1 * positionFromEndWeight
-      // Add wordDurationScore with appropriate weight if desired
     );
     return Math.max(0, Math.min(1, finalScore)); // Clamp between 0 and 1
   }

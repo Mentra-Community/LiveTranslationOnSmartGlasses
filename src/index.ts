@@ -339,9 +339,11 @@ class LiveTranslationApp extends TpaServer {
 
     let confidenceScore: number | null = null;
     if (!isFinal) {
-      confidenceScore = confidenceCalculator.calculateConfidence(newText);
+      // Determine if Hanzi/Japanese mode should be used for confidence
+      const isHanzi = targetLanguage.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
+      confidenceScore = confidenceCalculator.calculateConfidence(newText, isHanzi);
     } else {
-      confidenceCalculator.resetState();
+      confidenceCalculator.resetState(); // Reset confidence state on final transcript
     }
 
     // Process the new translation text
