@@ -28,10 +28,9 @@ const defaultSettings = {
 
 // Configuration constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 80;
-const CLOUD_HOST_NAME = process.env.CLOUD_HOST_NAME;
 const PACKAGE_NAME = process.env.PACKAGE_NAME;
 const AUGMENTOS_API_KEY = process.env.AUGMENTOS_API_KEY; // In production, this would be securely stored
-const MAX_FINAL_TRANSCRIPTS = 10;
+const MAX_FINAL_TRANSCRIPTS = 100;
 
 // Verify env vars are set
 if (!AUGMENTOS_API_KEY) {
@@ -48,6 +47,7 @@ const userSourceLanguages: Map<string, string> = new Map();
 const userTargetLanguages: Map<string, string> = new Map();
 const userDisplayModes: Map<string, string> = new Map();
 const userConfidenceCalculators: Map<string, ConfidenceCalculator> = new Map();
+const userConfidenceHeuristics: Map<string, ConfidenceHeuristic> = new Map(); // Store per-user heuristic
 
 // For debouncing transcripts per session
 interface TranscriptDebouncer {
@@ -110,7 +110,8 @@ class LiveTranslationApp extends TpaServer {
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, defaultSettings.displayMode);
-      userConfidenceCalculators.set(userId, new ConfidenceCalculator(defaultSettings.confidenceHeuristic as ConfidenceHeuristic));
+      userConfidenceCalculators.set(userId, new ConfidenceCalculator());
+      userConfidenceHeuristics.set(userId, defaultSettings.confidenceHeuristic as ConfidenceHeuristic);
 
       // Setup handler for translation data
       const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
@@ -194,16 +195,16 @@ class LiveTranslationApp extends TpaServer {
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, displayMode);
+      userConfidenceHeuristics.set(userId, confidenceHeuristicSetting);
       
       // Update or initialize confidence calculator
       let confidenceCalculator = userConfidenceCalculators.get(userId);
-      if (confidenceCalculator) {
-        confidenceCalculator.setHeuristic(confidenceHeuristicSetting);
-      } else {
-        confidenceCalculator = new ConfidenceCalculator(confidenceHeuristicSetting);
+      if (!confidenceCalculator) {
+        confidenceCalculator = new ConfidenceCalculator();
         userConfidenceCalculators.set(userId, confidenceCalculator);
       }
-      
+      // confidenceCalculator.setHeuristic(confidenceHeuristicSetting);
+
       // Convert locales
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
@@ -239,7 +240,7 @@ class LiveTranslationApp extends TpaServer {
       userTranscriptProcessors.set(userId, newProcessor);
 
       // Show the updated transcript layout immediately with the new formatting
-      const formattedTranscript = newProcessor.getFormattedTranscriptHistory();
+      const formattedTranscript = newProcessor.processString("", true);
       this.showTranscriptsToUser(session, formattedTranscript, true);
 
       // Setup handler for translation data
@@ -293,9 +294,10 @@ class LiveTranslationApp extends TpaServer {
     userId: string, 
     translationData: TranslationData
   ): void {
+    console.log(`[Session ${sessionId}]: Handling translation for user ${userId}`);
+
     let transcriptProcessor = userTranscriptProcessors.get(userId);
     if (!transcriptProcessor) {
-      // Create default processor if none exists
       const targetLang = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
       const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
       transcriptProcessor = new TranscriptProcessor(
@@ -307,10 +309,22 @@ class LiveTranslationApp extends TpaServer {
       userTranscriptProcessors.set(userId, transcriptProcessor);
     }
 
+    console.log(`[Session ${sessionId}]: Confidence calculator: ${userConfidenceCalculators.get(userId)}`);
+
     let confidenceCalculator = userConfidenceCalculators.get(userId);
     if (!confidenceCalculator) {
-        confidenceCalculator = new ConfidenceCalculator(defaultSettings.confidenceHeuristic as ConfidenceHeuristic);
-        userConfidenceCalculators.set(userId, confidenceCalculator);
+      confidenceCalculator = new ConfidenceCalculator();
+      userConfidenceCalculators.set(userId, confidenceCalculator);
+    }
+
+    // Use the cached heuristic for this user
+    const confidenceHeuristicSetting = userConfidenceHeuristics.get(userId) || defaultSettings.confidenceHeuristic;
+    console.log(`[Session ${sessionId}]: Confidence heuristic: ${confidenceHeuristicSetting}`);
+
+    // Check if we should accept this interim transcript (length protection)
+    if (!confidenceCalculator.shouldAcceptInterim(translationData.text, translationData.isFinal)) {
+      console.log(`[Session ${sessionId}]: Rejecting shorter interim transcript`);
+      return; // Don't process shorter interim transcripts
     }
 
     const isFinal = translationData.isFinal;
@@ -329,7 +343,7 @@ class LiveTranslationApp extends TpaServer {
       return;
     }
 
-    console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
+    // console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
 
     if (targetLanguage === 'Chinese (Pinyin)') {
       const pinyinTranscript = convertToPinyin(newText);
@@ -337,32 +351,26 @@ class LiveTranslationApp extends TpaServer {
       newText = pinyinTranscript;
     }
 
-    let confidenceScore: number | null = null;
-    if (!isFinal) {
-      // Determine if Hanzi/Japanese mode should be used for confidence
-      const isHanzi = targetLanguage.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
-      confidenceScore = confidenceCalculator.calculateConfidence(newText, isHanzi);
-    } else {
-      confidenceCalculator.resetState(); // Reset confidence state on final transcript
-    }
-
-    // Process the new translation text
-    transcriptProcessor.processString(newText, isFinal);
-
     let textToDisplay;
-
     if (isFinal) {
-      // For final translations, get the formatted history
-      textToDisplay = transcriptProcessor.getFormattedTranscriptHistory();
+      // For final translations, show the full transcript
+      textToDisplay = transcriptProcessor.processString(newText, isFinal);
+      confidenceCalculator.resetState(); // Reset confidence state on final transcript
+      confidenceCalculator.resetInterimTracking(); // Reset interim tracking after final transcript
       console.log(`[Session ${sessionId}]: finalTranscriptCount=${transcriptProcessor.getFinalTranscriptHistory().length}`);
     } else {
-      // For non-final, combine history with current partial
-      const combinedTranscriptHistory = transcriptProcessor.getCombinedTranscriptHistory();
-      // Confidence is calculated but not shown
-      // const prefix = confidenceScore !== null && confidenceCalculator['heuristic'] !== 'None' ? `[${confidenceScore.toFixed(2)}] ` : '';
-      // const textToProcess = `${combinedTranscriptHistory} ${prefix}${newText}`;
-      const textToProcess = `${combinedTranscriptHistory} ${newText}`;
-      textToDisplay = transcriptProcessor.getFormattedPartialTranscript(textToProcess);
+      // For interim, show only the confident prefix (plus transcript history) if heuristic is not 'None'
+      const isHanzi = targetLanguage.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
+      let confidentPrefix: string;
+      if (confidenceHeuristicSetting === 'None') {
+        confidentPrefix = newText;
+      } else {
+        // Update the confidence calculator's state for this interim
+        confidenceCalculator.calculateConfidence(newText, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+        confidentPrefix = confidenceCalculator.getNonShrinkingConfidentPrefix(newText, 0.4, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+      }
+      // Only pass the confident prefix to the processor (it manages its own history)
+      textToDisplay = transcriptProcessor.processString(confidentPrefix, false);
     }
 
     console.log(`[Session ${sessionId}]: ${textToDisplay}`);

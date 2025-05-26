@@ -2,9 +2,12 @@ export type ConfidenceHeuristic = 'None' | 'WordStability' | 'PrefixRetention' |
 
 interface WordDetail {
   word: string;
+  normalizedWord: string; // For fuzzy matching
   stableCount: number;
   firstSeen: number;
   lastSeen: number;
+  bestPosition: number; // Track the most stable position
+  positionHistory: number[]; // Track position changes
 }
 
 // Basic Levenshtein distance implementation
@@ -31,35 +34,60 @@ function levenshteinDistance(s1: string, s2: string): number {
 }
 
 export class ConfidenceCalculator {
-  private heuristic: ConfidenceHeuristic = 'None';
   private previousTranscript: string = '';
   private previousWords: string[] = [];
   private wordStabilityBuffer: WordDetail[] = [];
   private transcriptHistory: { text: string; timestamp: number }[] = [];
+  private lastInterimLength: number = 0; // Track length of last interim transcript
+  private lastShownConfidentPrefix: string = ''; // Track last shown confident prefix to prevent shrinking
 
-  constructor(initialHeuristic: ConfidenceHeuristic = 'None') {
-    this.heuristic = initialHeuristic;
-  }
-
-  public setHeuristic(heuristic: ConfidenceHeuristic): void {
-    this.heuristic = heuristic;
-    this.resetState(); // Reset state when heuristic changes
-  }
+  constructor() {}
 
   public resetState(): void {
     this.previousTranscript = '';
     this.previousWords = [];
     this.wordStabilityBuffer = [];
     this.transcriptHistory = [];
+    this.lastInterimLength = 0;
+    this.lastShownConfidentPrefix = '';
+  }
+
+  /**
+   * Reset only the interim tracking (called after final transcripts)
+   */
+  public resetInterimTracking(): void {
+    this.lastInterimLength = 0;
+    this.lastShownConfidentPrefix = '';
+  }
+
+  /**
+   * Check if an interim transcript should be accepted (not shorter than previous)
+   */
+  public shouldAcceptInterim(currentTranscript: string, isFinal: boolean): boolean {
+    if (isFinal) {
+      // Final transcripts are always accepted and reset the length tracking
+      this.resetInterimTracking();
+      return true;
+    }
+    
+    const currentLength = this.splitWords(currentTranscript, false).length;
+    if (currentLength >= this.lastInterimLength) {
+      this.lastInterimLength = currentLength;
+      return true;
+    }
+    
+    // Reject shorter interim transcripts
+    return false;
   }
 
   /**
    * Main entry point for confidence calculation.
    * @param currentTranscript The current interim transcript string
    * @param isHanzi If true, treat each character as a word (for Hanzi/Chinese/Japanese)
+   * @param heuristic The confidence heuristic to use
    */
-  public calculateConfidence(currentTranscript: string, isHanzi: boolean = false): number | null {
-    if (this.heuristic === 'None') {
+  public calculateConfidence(currentTranscript: string, isHanzi: boolean = false, heuristic: ConfidenceHeuristic = 'None'): number | null {
+    if (heuristic === 'None') {
       return null;
     }
 
@@ -71,7 +99,7 @@ export class ConfidenceCalculator {
 
     let score: number | null = null;
 
-    switch (this.heuristic) {
+    switch (heuristic) {
       case 'WordStability':
         score = this.calculateWordStability(currentTranscript, isHanzi);
         break;
@@ -110,27 +138,184 @@ export class ConfidenceCalculator {
   }
 
   /**
-   * Word Stability Heuristic
-   * Measures: For each word, how many consecutive updates it has appeared in the same position.
-   * How: Tracks a buffer of words and their stability counts. The score is the fraction of words that are stable (unchanged from previous update).
-   * Best for: Highlighting which words in the interim transcript are most reliable, especially for word-level confidence visualization.
+   * Normalize a word for fuzzy matching (remove punctuation, lowercase)
+   */
+  private normalizeWord(word: string): string {
+    return word.toLowerCase().replace(/[^\w\s]/g, '').trim();
+  }
+
+  /**
+   * Calculate similarity between two words (0-1, where 1 is identical)
+   */
+  private wordSimilarity(word1: string, word2: string): number {
+    const norm1 = this.normalizeWord(word1);
+    const norm2 = this.normalizeWord(word2);
+    
+    if (norm1 === norm2) return 1.0;
+    if (norm1.length === 0 || norm2.length === 0) return 0.0;
+    
+    // Simple similarity: longer common prefix + suffix
+    let prefixLen = 0;
+    let suffixLen = 0;
+    const minLen = Math.min(norm1.length, norm2.length);
+    
+    // Count common prefix
+    for (let i = 0; i < minLen; i++) {
+      if (norm1[i] === norm2[i]) prefixLen++;
+      else break;
+    }
+    
+    // Count common suffix (if not overlapping with prefix)
+    for (let i = 1; i <= minLen - prefixLen; i++) {
+      if (norm1[norm1.length - i] === norm2[norm2.length - i]) suffixLen++;
+      else break;
+    }
+    
+    const commonChars = prefixLen + suffixLen;
+    const maxLen = Math.max(norm1.length, norm2.length);
+    return commonChars / maxLen;
+  }
+
+  /**
+   * Find the best matching word in the buffer for a given word and position
+   */
+  private findBestMatch(word: string, position: number, currentWords: string[]): WordDetail | null {
+    const normalizedWord = this.normalizeWord(word);
+    let bestMatch: WordDetail | null = null;
+    let bestScore = 0;
+    
+    for (const detail of this.wordStabilityBuffer) {
+      // Calculate position penalty (prefer words close to expected position)
+      const positionPenalty = Math.abs(detail.bestPosition - position) / Math.max(currentWords.length, 1);
+      const maxPositionPenalty = 0.3; // Max 30% penalty for position mismatch
+      const positionScore = Math.max(0, 1 - Math.min(positionPenalty, maxPositionPenalty));
+      
+      // Calculate word similarity
+      const wordScore = this.wordSimilarity(word, detail.word);
+      
+      // Combined score (70% word similarity, 30% position)
+      const combinedScore = (0.7 * wordScore) + (0.3 * positionScore);
+      
+      // Require minimum similarity threshold
+      if (combinedScore > bestScore && wordScore >= 0.8) {
+        bestScore = combinedScore;
+        bestMatch = detail;
+      }
+    }
+    
+    return bestMatch;
+  }
+
+  /**
+   * Word Stability Heuristic (Enhanced with Decay)
+   * Measures: For each word, how stable it has been across updates, with fuzzy matching and position flexibility.
+   * How: Uses similarity matching and position tracking to handle insertions, deletions, and minor variations.
+   * Includes decay for absent words instead of immediate removal.
+   * Best for: Robust word-level confidence that handles real-world ASR instability and oscillations.
    */
   private calculateWordStability(currentTranscript: string, isHanzi: boolean = false): number {
     const currentWords = this.splitWords(currentTranscript, isHanzi);
-    let stableWords = 0;
-    const newWordStabilityBuffer: WordDetail[] = [];
-
-    currentWords.forEach((word, index) => {
-      const prevDetail = this.wordStabilityBuffer.find(detail => detail.word === word && this.previousWords[index] === word);
-      if (prevDetail) {
-        newWordStabilityBuffer.push({ ...prevDetail, stableCount: prevDetail.stableCount + 1, lastSeen: Date.now() });
-        stableWords++;
-      } else {
-        newWordStabilityBuffer.push({ word, stableCount: 1, firstSeen: Date.now(), lastSeen: Date.now() });
+    if (currentWords.length === 0) return 0;
+    
+    const currentTime = Date.now();
+    const decayTime = 2000; // 2 seconds before decay starts
+    
+    // First, decay absent words instead of removing them
+    for (const detail of this.wordStabilityBuffer) {
+      const timeSinceLastSeen = currentTime - detail.lastSeen;
+      if (timeSinceLastSeen > decayTime) {
+        // Gradually reduce stability for absent words
+        const decayFactor = Math.max(0.1, 1 - (timeSinceLastSeen - decayTime) / 5000); // 5s to decay to 10%
+        detail.stableCount = Math.max(1, detail.stableCount * decayFactor);
       }
-    });
+    }
+    
+    const newWordStabilityBuffer: WordDetail[] = [];
+    let totalStabilityScore = 0;
+    
+    // Process each current word
+    for (let i = 0; i < currentWords.length; i++) {
+      const word = currentWords[i];
+      const normalizedWord = this.normalizeWord(word);
+      
+      // Find best matching word from previous buffer
+      const bestMatch = this.findBestMatch(word, i, currentWords);
+      
+      if (bestMatch) {
+        // Update existing word detail
+        const updatedDetail: WordDetail = {
+          word: word, // Update to current form
+          normalizedWord: normalizedWord,
+          stableCount: bestMatch.stableCount + 1,
+          firstSeen: bestMatch.firstSeen,
+          lastSeen: currentTime,
+          bestPosition: i, // Update best position
+          positionHistory: [...bestMatch.positionHistory.slice(-5), i] // Keep last 5 positions
+        };
+        
+        newWordStabilityBuffer.push(updatedDetail);
+        
+        // Calculate stability score for this word
+        const stabilityFactor = Math.min(1, updatedDetail.stableCount / 3); // 3+ updates = fully stable
+        const positionConsistency = this.calculatePositionConsistency(updatedDetail.positionHistory);
+        const wordStabilityScore = stabilityFactor * positionConsistency;
+        
+        totalStabilityScore += wordStabilityScore;
+      } else {
+        // New word
+        const newDetail: WordDetail = {
+          word: word,
+          normalizedWord: normalizedWord,
+          stableCount: 1,
+          firstSeen: currentTime,
+          lastSeen: currentTime,
+          bestPosition: i,
+          positionHistory: [i]
+        };
+        
+        newWordStabilityBuffer.push(newDetail);
+        
+        // New words get low stability score
+        totalStabilityScore += 0.2; // 20% confidence for new words
+      }
+    }
+    
+    // Keep decayed words that weren't matched (for potential future matches)
+    for (const oldDetail of this.wordStabilityBuffer) {
+      const wasMatched = newWordStabilityBuffer.some(newDetail => 
+        this.wordSimilarity(oldDetail.word, newDetail.word) > 0.8
+      );
+      if (!wasMatched && oldDetail.stableCount > 0.5) {
+        // Keep decayed word in buffer for potential future matching
+        newWordStabilityBuffer.push({
+          ...oldDetail,
+          lastSeen: oldDetail.lastSeen // Don't update lastSeen for absent words
+        });
+      }
+    }
+    
+    // Update the buffer
     this.wordStabilityBuffer = newWordStabilityBuffer;
-    return currentWords.length > 0 ? stableWords / currentWords.length : 0;
+    
+    // Return average stability score
+    return totalStabilityScore / currentWords.length;
+  }
+
+  /**
+   * Calculate how consistent a word's position has been
+   */
+  private calculatePositionConsistency(positionHistory: number[]): number {
+    if (positionHistory.length <= 1) return 1.0;
+    
+    // Calculate variance in positions
+    const mean = positionHistory.reduce((sum, pos) => sum + pos, 0) / positionHistory.length;
+    const variance = positionHistory.reduce((sum, pos) => sum + Math.pow(pos - mean, 2), 0) / positionHistory.length;
+    const stdDev = Math.sqrt(variance);
+    
+    // Convert to consistency score (lower variance = higher consistency)
+    // Allow up to 2 positions of variance before penalizing
+    const maxAllowedStdDev = 2;
+    return Math.max(0, 1 - (stdDev / maxAllowedStdDev));
   }
 
   /**
@@ -206,11 +391,28 @@ export class ConfidenceCalculator {
     const updatedBuffer: WordDetail[] = [];
 
     currentWords.forEach((word, index) => {
-        let detail = this.wordStabilityBuffer.find(d => d.word === word && this.previousWords[index] === word);
-        if (detail) {
-            detail = { ...detail, lastSeen: currentTime, stableCount: detail.stableCount + 1 }; 
+        const bestMatch = this.findBestMatch(word, index, currentWords);
+        let detail: WordDetail;
+        if (bestMatch) {
+            detail = { 
+                ...bestMatch, 
+                word: word,
+                normalizedWord: this.normalizeWord(word),
+                lastSeen: currentTime, 
+                stableCount: bestMatch.stableCount + 1,
+                bestPosition: index,
+                positionHistory: [...bestMatch.positionHistory.slice(-5), index]
+            }; 
         } else {
-            detail = { word, stableCount: 1, firstSeen: currentTime, lastSeen: currentTime };
+            detail = { 
+                word, 
+                normalizedWord: this.normalizeWord(word),
+                stableCount: 1, 
+                firstSeen: currentTime, 
+                lastSeen: currentTime,
+                bestPosition: index,
+                positionHistory: [index]
+            };
         }
         updatedBuffer.push(detail);
         const duration = (detail.lastSeen - detail.firstSeen) / 1000; // in seconds
@@ -264,5 +466,89 @@ export class ConfidenceCalculator {
       0.1 * positionFromEndWeight
     );
     return Math.max(0, Math.min(1, finalScore)); // Clamp between 0 and 1
+  }
+
+  /**
+   * Returns the longest prefix of words/characters in the current transcript
+   * where each is above the given confidence threshold (using Word Stability).
+   * @param currentTranscript The current interim transcript string
+   * @param threshold Confidence threshold (0-1)
+   * @param isHanzi If true, treat each character as a word
+   * @param heuristic The confidence heuristic to use (should be 'WordStability' for best results)
+   * @returns The confident prefix as a string
+   */
+  public getConfidentPrefix(currentTranscript: string, threshold: number, isHanzi: boolean = false, heuristic: ConfidenceHeuristic = 'WordStability'): string {
+    const currentWords = this.splitWords(currentTranscript, isHanzi);
+    const confidentWords: string[] = [];
+    for (let index = 0; index < currentWords.length; index++) {
+      const word = currentWords[index];
+      // Find the matching word in the current buffer (read-only)
+      const bestMatch = this.findBestMatchReadOnly(word, index, currentWords);
+      let confidence = 0.2; // Default for new words
+      
+      if (bestMatch) {
+        const stabilityFactor = Math.min(1, bestMatch.stableCount / 3);
+        const positionConsistency = this.calculatePositionConsistency(bestMatch.positionHistory);
+        confidence = stabilityFactor * positionConsistency;
+      }
+      
+      if (confidence >= threshold) {
+        confidentWords.push(word);
+      } else {
+        break; // Stop at the first non-confident word (prefix only)
+      }
+    }
+    // Join with space for non-Hanzi, or no space for Hanzi
+    return isHanzi ? confidentWords.join('') : confidentWords.join(' ');
+  }
+
+  /**
+   * Find the best matching word in the buffer (read-only version for getConfidentPrefix)
+   */
+  private findBestMatchReadOnly(word: string, position: number, currentWords: string[]): WordDetail | null {
+    const normalizedWord = this.normalizeWord(word);
+    let bestMatch: WordDetail | null = null;
+    let bestScore = 0;
+    
+    for (const detail of this.wordStabilityBuffer) {
+      // Calculate position penalty (prefer words close to expected position)
+      const positionPenalty = Math.abs(detail.bestPosition - position) / Math.max(currentWords.length, 1);
+      const maxPositionPenalty = 0.3; // Max 30% penalty for position mismatch
+      const positionScore = Math.max(0, 1 - Math.min(positionPenalty, maxPositionPenalty));
+      
+      // Calculate word similarity
+      const wordScore = this.wordSimilarity(word, detail.word);
+      
+      // Combined score (70% word similarity, 30% position)
+      const combinedScore = (0.7 * wordScore) + (0.3 * positionScore);
+      
+      // Require minimum similarity threshold
+      if (combinedScore > bestScore && wordScore >= 0.8) {
+        bestScore = combinedScore;
+        bestMatch = detail;
+      }
+    }
+    
+    return bestMatch;
+  }
+
+  /**
+   * Get confident prefix that never shrinks compared to previous interim
+   */
+  public getNonShrinkingConfidentPrefix(currentTranscript: string, threshold: number, isHanzi: boolean = false, heuristic: ConfidenceHeuristic = 'WordStability'): string {
+    const newConfidentPrefix = this.getConfidentPrefix(currentTranscript, threshold, isHanzi, heuristic);
+    
+    // Count words/characters in both prefixes
+    const newPrefixLength = this.splitWords(newConfidentPrefix, isHanzi).length;
+    const lastPrefixLength = this.splitWords(this.lastShownConfidentPrefix, isHanzi).length;
+    
+    // Only update if new prefix is longer or equal
+    if (newPrefixLength >= lastPrefixLength) {
+      this.lastShownConfidentPrefix = newConfidentPrefix;
+      return newConfidentPrefix;
+    } else {
+      // Keep the previous longer prefix
+      return this.lastShownConfidentPrefix;
+    }
   }
 } 
