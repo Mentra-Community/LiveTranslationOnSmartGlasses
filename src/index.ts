@@ -207,9 +207,13 @@ class LiveTranslationApp extends TpaServer {
       }
       // confidenceCalculator.setHeuristic(confidenceHeuristicSetting);
 
+      console.log(`[Session ${sessionId}]: sourceLang=${sourceLang}, targetLang=${targetLang}`);
+
       // Convert locales
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
+
+      console.log(`[Session ${sessionId}]: sourceLocale=${sourceLocale}, targetLocale=${targetLocale}`);
       
       // Process line width and other formatting settings
       const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
