@@ -107,6 +107,8 @@ class LiveTranslationApp extends TpaServer {
       const targetLang = defaultSettings.translateLanguage;
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
+
+      console.log(`[Session ${sessionId}]: sourceLang=${sourceLang}, targetLang=${targetLang}`);
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, defaultSettings.displayMode);
