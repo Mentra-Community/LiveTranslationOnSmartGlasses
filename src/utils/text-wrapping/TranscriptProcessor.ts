@@ -25,18 +25,18 @@ export class TranscriptProcessor {
 
   public processString(newText: string | null, isFinal: boolean): string {
     newText = (newText === null ? "" : newText.trim());
+    if (newText === "") return this.currentDisplayLines.join("\n");
 
-    if (!isFinal) {
-      // Store this as the current partial text (overwriting old partial)
-      this.partialText = newText;
-      this.lastUserTranscript = newText;
-    } else {
-      // For final transcripts, add to history but keep the partial text
-      // until we get a new non-final transcript
+    // Always append new text to the history
+    if (isFinal) {
       this.addToTranscriptHistory(newText);
+    } else {
+      // For non-final, just update the partial text
+      this.partialText = newText;
     }
-    
-    // Always combine final history with current partial text
+    this.lastUserTranscript = newText;
+
+    // Always combine everything: history + partial text
     const combinedText = this.getCombinedTranscriptHistory() + (this.partialText ? " " + this.partialText : "");
     this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
     
@@ -48,17 +48,18 @@ export class TranscriptProcessor {
       this.currentDisplayLines.shift();
     }
     
-    // Only clear partial text after we've processed it for a final transcript
-    if (isFinal) {
-      this.partialText = "";
-    }
-    
     return this.currentDisplayLines.join("\n");
   }
 
   // Add to transcript history
   private addToTranscriptHistory(transcript: string): void {
     if (transcript.trim() === "") return; // Don't add empty transcripts
+    
+    // If the last transcript in history is the same as the new one, don't add it
+    if (this.finalTranscriptHistory.length > 0 && 
+        this.finalTranscriptHistory[this.finalTranscriptHistory.length - 1] === transcript) {
+      return;
+    }
     
     this.finalTranscriptHistory.push(transcript);
     
