@@ -218,7 +218,7 @@ class LiveTranslationApp extends TpaServer {
       userTranscriptProcessors.set(userId, newProcessor);
 
       // Show the updated transcript layout immediately with the new formatting
-      const formattedTranscript = newProcessor.getFormattedTranscriptHistory();
+      const formattedTranscript = newProcessor.processString("", true);
       this.showTranscriptsToUser(session, formattedTranscript, true);
 
       // Setup handler for translation data
@@ -276,7 +276,7 @@ class LiveTranslationApp extends TpaServer {
     if (!transcriptProcessor) {
       // Create default processor if none exists
       const targetLang = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
-      const isChineseTarget = targetLang.toLowerCase().startsWith('zh-') || targetLang.toLowerCase().startsWith('ja-');
+      const isChineseTarget = targetLang.toLowerCase().includes('hanzi') || targetLang.toLowerCase().startsWith('ja-');
       transcriptProcessor = new TranscriptProcessor(
         convertLineWidth(defaultSettings.lineWidth, isChineseTarget),
         defaultSettings.numberOfLines,
@@ -310,22 +310,8 @@ class LiveTranslationApp extends TpaServer {
       newText = pinyinTranscript;
     }
 
-    // Process the new translation text
-    transcriptProcessor.processString(newText, isFinal);
-
-    let textToDisplay;
-
-    if (isFinal) {
-      // For final translations, get the formatted history
-      textToDisplay = transcriptProcessor.getFormattedTranscriptHistory();
-      console.log(`[Session ${sessionId}]: finalTranscriptCount=${transcriptProcessor.getFinalTranscriptHistory().length}`);
-    } else {
-      // For non-final, combine history with current partial
-      const combinedTranscriptHistory = transcriptProcessor.getCombinedTranscriptHistory();
-      const textToProcess = `${combinedTranscriptHistory} ${newText}`;
-      textToDisplay = transcriptProcessor.getFormattedPartialTranscript(textToProcess);
-    }
-
+    // Process the transcript and get the formatted text directly
+    const textToDisplay = transcriptProcessor.processString(newText, isFinal);
     console.log(`[Session ${sessionId}]: ${textToDisplay}`);
     console.log(`[Session ${sessionId}]: isFinal=${isFinal}`);
 
