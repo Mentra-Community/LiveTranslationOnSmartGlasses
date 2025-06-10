@@ -30,41 +30,30 @@ export class TranscriptProcessor {
       // Store this as the current partial text (overwriting old partial)
       this.partialText = newText;
       this.lastUserTranscript = newText;
-      
-      // Combine final history with new partial text
-      const combinedText = this.getCombinedTranscriptHistory() + " " + newText;
-      this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
-      
-      // Ensure we have exactly maxLines
-      while (this.currentDisplayLines.length < this.maxLines) {
-        this.currentDisplayLines.push("");
-      }
-      while (this.currentDisplayLines.length > this.maxLines) {
-        this.currentDisplayLines.shift();
-      }
-      
-      return this.currentDisplayLines.join("\n");
     } else {
-      // We have a final text -> clear out the partial text to avoid duplication
-      this.partialText = "";
-
-      // Add to transcript history when it's a final transcript
+      // For final transcripts, add to history but keep the partial text
+      // until we get a new non-final transcript
       this.addToTranscriptHistory(newText);
-
-      // Use the same wrapping logic as partial to maintain consistency
-      const combinedText = this.getCombinedTranscriptHistory();
-      this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
-      
-      // Ensure we have exactly maxLines
-      while (this.currentDisplayLines.length < this.maxLines) {
-        this.currentDisplayLines.push("");
-      }
-      while (this.currentDisplayLines.length > this.maxLines) {
-        this.currentDisplayLines.shift();
-      }
-      
-      return this.currentDisplayLines.join("\n");
     }
+    
+    // Always combine final history with current partial text
+    const combinedText = this.getCombinedTranscriptHistory() + (this.partialText ? " " + this.partialText : "");
+    this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
+    
+    // Ensure we have exactly maxLines
+    while (this.currentDisplayLines.length < this.maxLines) {
+      this.currentDisplayLines.push("");
+    }
+    while (this.currentDisplayLines.length > this.maxLines) {
+      this.currentDisplayLines.shift();
+    }
+    
+    // Only clear partial text after we've processed it for a final transcript
+    if (isFinal) {
+      this.partialText = "";
+    }
+    
+    return this.currentDisplayLines.join("\n");
   }
 
   // Add to transcript history
