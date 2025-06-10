@@ -365,17 +365,6 @@ class LiveTranslationApp extends TpaServer {
   }
 
   /**
-   * Cleans the transcript text by removing leading punctuation while preserving Spanish question marks
-   * and Chinese characters
-   */
-  private cleanTranscriptText(text: string): string {
-    // Remove basic punctuation marks (both Western and Chinese)
-    // Western: . , ; : ! ?
-    // Chinese: 。 ， ； ： ！ ？
-    return text.replace(/^[.,;:!?。，；：！？]+/, '').trim();
-  }
-
-  /**
    * Displays transcript text in the AR view
    */
   private showTranscriptsToUser(
@@ -390,6 +379,17 @@ class LiveTranslationApp extends TpaServer {
       // Use a fixed duration for final transcripts (20 seconds)
       durationMs: isFinal ? 20000 : undefined,
     });
+  }
+
+  /**
+   * Cleans the transcript text by removing leading punctuation while preserving Spanish question marks
+   * and Chinese characters
+   */
+  private cleanTranscriptText(text: string): string {
+    // Remove basic punctuation marks (both Western and Chinese)
+    // Western: . , ; : ! ?
+    // Chinese: 。 ， ； ： ！ ？
+    return text.replace(/^[.,;:!?。，；：！？]+/, '').trim();
   }
 
   // Helper method to get active session for a user

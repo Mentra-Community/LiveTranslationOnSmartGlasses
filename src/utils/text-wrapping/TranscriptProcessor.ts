@@ -25,41 +25,51 @@ export class TranscriptProcessor {
 
   public processString(newText: string | null, isFinal: boolean): string {
     newText = (newText === null ? "" : newText.trim());
-    if (newText === "") return this.currentDisplayLines.join("\n");
 
-    // Always append new text to the history
-    if (isFinal) {
-      this.addToTranscriptHistory(newText);
-    } else {
-      // For non-final, just update the partial text
+    if (!isFinal) {
+      // Store this as the current partial text (overwriting old partial)
       this.partialText = newText;
-    }
-    this.lastUserTranscript = newText;
+      this.lastUserTranscript = newText;
+      
+      // Combine final history with new partial text
+      const combinedText = this.getCombinedTranscriptHistory() + " " + newText;
+      this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
+      
+      // Ensure we have exactly maxLines
+      while (this.currentDisplayLines.length < this.maxLines) {
+        this.currentDisplayLines.push("");
+      }
+      while (this.currentDisplayLines.length > this.maxLines) {
+        this.currentDisplayLines.shift();
+      }
+      
+      return this.currentDisplayLines.join("\n");
+    } else {
+      // We have a final text -> clear out the partial text to avoid duplication
+      this.partialText = "";
 
-    // Always combine everything: history + partial text
-    const combinedText = this.getCombinedTranscriptHistory() + (this.partialText ? " " + this.partialText : "");
-    this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
-    
-    // Ensure we have exactly maxLines
-    while (this.currentDisplayLines.length < this.maxLines) {
-      this.currentDisplayLines.push("");
+      // Add to transcript history when it's a final transcript
+      this.addToTranscriptHistory(newText);
+
+      // Use the same wrapping logic as partial to maintain consistency
+      const combinedText = this.getCombinedTranscriptHistory();
+      this.currentDisplayLines = this.wrapText(combinedText, this.maxCharsPerLine);
+      
+      // Ensure we have exactly maxLines
+      while (this.currentDisplayLines.length < this.maxLines) {
+        this.currentDisplayLines.push("");
+      }
+      while (this.currentDisplayLines.length > this.maxLines) {
+        this.currentDisplayLines.shift();
+      }
+      
+      return this.currentDisplayLines.join("\n");
     }
-    while (this.currentDisplayLines.length > this.maxLines) {
-      this.currentDisplayLines.shift();
-    }
-    
-    return this.currentDisplayLines.join("\n");
   }
 
   // Add to transcript history
   private addToTranscriptHistory(transcript: string): void {
     if (transcript.trim() === "") return; // Don't add empty transcripts
-    
-    // If the last transcript in history is the same as the new one, don't add it
-    if (this.finalTranscriptHistory.length > 0 && 
-        this.finalTranscriptHistory[this.finalTranscriptHistory.length - 1] === transcript) {
-      return;
-    }
     
     this.finalTranscriptHistory.push(transcript);
     
