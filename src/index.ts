@@ -55,6 +55,12 @@ interface TranscriptDebouncer {
   timer: NodeJS.Timeout | null;
 }
 
+// For managing inactivity timers per session
+interface InactivityTimer {
+  timer: NodeJS.Timeout | null;
+  lastActivityTime: number;
+}
+
 /**
  * LiveTranslationApp - Main application class that extends TpaServer
  */
@@ -63,6 +69,8 @@ class LiveTranslationApp extends TpaServer {
   private sessionDebouncers = new Map<string, TranscriptDebouncer>();
   // Track active sessions by user ID
   private activeUserSessions = new Map<string, { session: TpaSession, sessionId: string }>();
+  // Inactivity timers for clearing text after 40 seconds of no activity
+  private inactivityTimers = new Map<string, InactivityTimer>();
 
   constructor() {
     super({
@@ -81,6 +89,9 @@ class LiveTranslationApp extends TpaServer {
 
     // Initialize transcript processor and debouncer for this session
     this.sessionDebouncers.set(sessionId, { lastSentTime: 0, timer: null });
+    
+    // Initialize inactivity timer for this session
+    this.inactivityTimers.set(sessionId, { timer: null, lastActivityTime: Date.now() });
     
     // Store the active session for this user
     this.activeUserSessions.set(userId, { session, sessionId });
@@ -284,11 +295,37 @@ class LiveTranslationApp extends TpaServer {
     }
     this.sessionDebouncers.delete(sessionId);
     
+    // Clean up inactivity timer
+    const inactivityTimer = this.inactivityTimers.get(sessionId);
+    if (inactivityTimer?.timer) {
+      clearTimeout(inactivityTimer.timer);
+    }
+    this.inactivityTimers.delete(sessionId);
+    
     // Remove active session if it matches this session ID
     const activeSession = this.activeUserSessions.get(userId);
     if (activeSession && activeSession.sessionId === sessionId) {
       this.activeUserSessions.delete(userId);
     }
+
+    // WIPE EVERYTHING - Complete cleanup of all user data
+    console.log(`🧹 Wiping all data for user ${userId} (session ${sessionId})`);
+    
+    // Clear transcript processor
+    userTranscriptProcessors.delete(userId);
+    
+    // Clear language settings
+    userSourceLanguages.delete(userId);
+    userTargetLanguages.delete(userId);
+    
+    // Clear display mode
+    userDisplayModes.delete(userId);
+    
+    // Clear confidence calculator and heuristic
+    userConfidenceCalculators.delete(userId);
+    userConfidenceHeuristics.delete(userId);
+    
+    console.log(`✅ Complete data wipe completed for user ${userId}`);
   }
 
   /**
@@ -300,6 +337,9 @@ class LiveTranslationApp extends TpaServer {
     userId: string, 
     translationData: TranslationData
   ): void {
+    // Reset inactivity timer when new translation is received
+    this.resetInactivityTimer(session, sessionId, userId);
+
     console.log(`[Session ${sessionId}]: Handling translation for user ${userId}`);
 
     let transcriptProcessor = userTranscriptProcessors.get(userId);
@@ -464,6 +504,38 @@ class LiveTranslationApp extends TpaServer {
    */
   public getActiveSessionForUser(userId: string): { session: TpaSession, sessionId: string } | null {
     return this.activeUserSessions.get(userId) || null;
+  }
+
+  /**
+   * Resets the inactivity timer for a session and schedules text clearing
+   */
+  private resetInactivityTimer(session: TpaSession, sessionId: string, userId: string): void {
+    const inactivityTimer = this.inactivityTimers.get(sessionId);
+    if (!inactivityTimer) return;
+
+    // Clear existing timer
+    if (inactivityTimer.timer) {
+      clearTimeout(inactivityTimer.timer);
+    }
+
+    // Update last activity time
+    inactivityTimer.lastActivityTime = Date.now();
+
+    // Schedule transcript processor clearing after 40 seconds (40000ms)
+    inactivityTimer.timer = setTimeout(() => {
+      // Clear the transcript processor's history
+      const transcriptProcessor = userTranscriptProcessors.get(userId);
+      if (transcriptProcessor) {
+        // Clear the processor's history
+        transcriptProcessor.clear();
+        
+        // Show empty state to user
+        session.layouts.showTextWall("", {
+          view: ViewType.MAIN,
+          durationMs: 1000, // Brief display to clear the text
+        });
+      }
+    }, 40000);
   }
 }
 
