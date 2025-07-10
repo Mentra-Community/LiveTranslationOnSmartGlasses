@@ -1,11 +1,11 @@
 // src/index.ts
 import path from 'path';
 import {
-  TpaServer,
-  TpaSession,
+  AppServer,
   ViewType,
   TranslationData,
-} from '@augmentos/sdk';
+  AppSession,
+} from '@mentra/sdk';
 import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
 import { ConfidenceCalculator, ConfidenceHeuristic } from './utils/confidenceHeuristics';
@@ -64,11 +64,11 @@ interface InactivityTimer {
 /**
  * LiveTranslationApp - Main application class that extends TpaServer
  */
-class LiveTranslationApp extends TpaServer {
+class LiveTranslationApp extends AppServer {
   // Session debouncers for throttling non-final transcripts
   private sessionDebouncers = new Map<string, TranscriptDebouncer>();
   // Track active sessions by user ID
-  private activeUserSessions = new Map<string, { session: TpaSession, sessionId: string }>();
+  private activeUserSessions = new Map<string, { session: AppSession, sessionId: string }>();
   // Inactivity timers for clearing text after 40 seconds of no activity
   private inactivityTimers = new Map<string, InactivityTimer>();
 
@@ -84,7 +84,7 @@ class LiveTranslationApp extends TpaServer {
   /**
    * Called by TpaServer when a new session is created
    */
-  protected async onSession(session: TpaSession, sessionId: string, userId: string): Promise<void> {
+  protected async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
     console.log(`\n\n🗣️🗣️🗣️Received new session for user ${userId}, session ${sessionId}\n\n`);
 
     // Initialize transcript processor and debouncer for this session
@@ -140,7 +140,7 @@ class LiveTranslationApp extends TpaServer {
    * Set up handlers for settings changes
    */
   private setupSettingsHandlers(
-    session: TpaSession,
+    session: AppSession,
     sessionId: string,
     userId: string
   ): void {
@@ -185,7 +185,7 @@ class LiveTranslationApp extends TpaServer {
    * Apply settings from the session to the transcript processor
    */
   private async applySettings(
-    session: TpaSession,
+    session: AppSession,
     sessionId: string,
     userId: string
   ): Promise<void> {
@@ -197,7 +197,18 @@ class LiveTranslationApp extends TpaServer {
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
       const confidenceHeuristicSetting = session.settings.get<string>('confidence_heuristic', defaultSettings.confidenceHeuristic) as ConfidenceHeuristic;
-      
+
+      // Check for unsupported languages (Hebrew and Standard Arabic)
+      const unsupportedLanguages = ['Hebrew', 'Standard Arabic'];
+      if (session.capabilities?.modelName === "Even Realities G1" && unsupportedLanguages.includes(targetLang)) {
+        console.log(`[Session ${sessionId}]: Unsupported language detected - sourceLang=${sourceLang}, targetLang=${targetLang}`);
+        session.layouts.showTextWall("This language is not supported on the Even Realities G1 glasses. Please use the Simulated Glasses instead.", {
+          view: ViewType.MAIN,
+          durationMs: 10000, // Show for 10 seconds
+        });
+        return; // Exit early without setting up translation handlers
+      }
+
       // Get previous values for comparison
       const previousSourceLang = userSourceLanguages.get(userId);
       const previousTargetLang = userTargetLanguages.get(userId);
@@ -332,7 +343,7 @@ class LiveTranslationApp extends TpaServer {
    * Handles translation data from the AugmentOS cloud
    */
   private handleTranslation(
-    session: TpaSession, 
+    session: AppSession, 
     sessionId: string, 
     userId: string, 
     translationData: TranslationData
@@ -429,7 +440,7 @@ class LiveTranslationApp extends TpaServer {
    * Debounces transcript display to avoid too frequent updates for non-final transcripts
    */
   private debounceAndShowTranscript(
-    session: TpaSession,
+    session: AppSession,
     sessionId: string,
     transcript: string,
     isFinal: boolean
@@ -486,7 +497,7 @@ class LiveTranslationApp extends TpaServer {
    * Displays transcript text in the AR view
    */
   private showTranscriptsToUser(
-    session: TpaSession,
+    session: AppSession,
     transcript: string,
     isFinal: boolean
   ): void {
@@ -502,14 +513,14 @@ class LiveTranslationApp extends TpaServer {
   /**
    * Helper method to get active session for a user
    */
-  public getActiveSessionForUser(userId: string): { session: TpaSession, sessionId: string } | null {
+  public getActiveSessionForUser(userId: string): { session: AppSession, sessionId: string } | null {
     return this.activeUserSessions.get(userId) || null;
   }
 
   /**
    * Resets the inactivity timer for a session and schedules text clearing
    */
-  private resetInactivityTimer(session: TpaSession, sessionId: string, userId: string): void {
+  private resetInactivityTimer(session: AppSession, sessionId: string, userId: string): void {
     const inactivityTimer = this.inactivityTimers.get(sessionId);
     if (!inactivityTimer) return;
 
