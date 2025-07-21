@@ -379,10 +379,10 @@ class LiveTranslationApp extends AppServer {
     console.log(`[Session ${sessionId}]: Confidence heuristic: ${confidenceHeuristicSetting}`);
 
     // Check if we should accept this interim transcript (length protection)
-    if (!confidenceCalculator.shouldAcceptInterim(translationData.text, translationData.isFinal)) {
-      console.log(`[Session ${sessionId}]: Rejecting shorter interim transcript`);
-      return; // Don't process shorter interim transcripts
-    }
+    // if (!confidenceCalculator.shouldAcceptInterim(translationData.text, translationData.isFinal)) {
+    //   console.log(`[Session ${sessionId}]: Rejecting shorter interim transcript`);
+    //   return; // Don't process shorter interim transcripts
+    // }
 
     const isFinal = translationData.isFinal;
     let newText = translationData.text;
