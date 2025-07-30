@@ -379,3 +379,98 @@ export function languageToLocale(localeString: string): string {
             return "en-US";
     }
   }
+
+/**
+ * Convert a locale code (like "ko" or "ko-KR") to a language name (like "Korean")
+ */
+export function localeToLanguage(localeCode: string): string {
+    // Extract just the language part (before the hyphen) if it's a full locale
+    const languageCode = localeCode.split('-')[0].toLowerCase();
+    
+    // Map of locale codes to language names
+    const localeMap: { [key: string]: string } = {
+        'af': 'Afrikaans',
+        'am': 'Amharic', 
+        'ar': 'Arabic',
+        'az': 'Azerbaijani',
+        'bg': 'Bulgarian',
+        'bn': 'Bengali',
+        'bs': 'Bosnian',
+        'ca': 'Catalan',
+        'cs': 'Czech',
+        'cy': 'Welsh',
+        'da': 'Danish',
+        'de': 'German',
+        'el': 'Greek',
+        'en': 'English',
+        'es': 'Spanish',
+        'et': 'Estonian',
+        'eu': 'Basque',
+        'fa': 'Persian',
+        'fi': 'Finnish',
+        'fil': 'Filipino',
+        'fr': 'French',
+        'ga': 'Irish',
+        'gl': 'Galician',
+        'gu': 'Gujarati',
+        'ha': 'Hausa',
+        'he': 'Hebrew',
+        'hi': 'Hindi',
+        'hr': 'Croatian',
+        'hu': 'Hungarian',
+        'hy': 'Armenian',
+        'id': 'Indonesian',
+        'ig': 'Igbo',
+        'is': 'Icelandic',
+        'it': 'Italian',
+        'ja': 'Japanese',
+        'jv': 'Javanese',
+        'ka': 'Georgian',
+        'kk': 'Kazakh',
+        'km': 'Khmer',
+        'kn': 'Kannada',
+        'ko': 'Korean',
+        'lo': 'Lao',
+        'lt': 'Lithuanian',
+        'lv': 'Latvian',
+        'mk': 'Macedonian',
+        'ml': 'Malayalam',
+        'mn': 'Mongolian',
+        'mr': 'Marathi',
+        'ms': 'Malay',
+        'mt': 'Maltese',
+        'my': 'Burmese',
+        'nb': 'Norwegian Bokmål',
+        'ne': 'Nepali',
+        'nl': 'Dutch',
+        'or': 'Odia',
+        'pa': 'Punjabi',
+        'pl': 'Polish',
+        'ps': 'Pashto',
+        'pt': 'Portuguese',
+        'ro': 'Romanian',
+        'ru': 'Russian',
+        'si': 'Sinhala',
+        'sk': 'Slovak',
+        'sl': 'Slovenian',
+        'so': 'Somali',
+        'sq': 'Albanian',
+        'sr': 'Serbian',
+        'sv': 'Swedish',
+        'sw': 'Swahili',
+        'ta': 'Tamil',
+        'te': 'Telugu',
+        'th': 'Thai',
+        'tr': 'Turkish',
+        'uk': 'Ukrainian',
+        'ur': 'Urdu',
+        'uz': 'Uzbek',
+        'vi': 'Vietnamese',
+        'yo': 'Yoruba',
+        'yue': 'Cantonese',
+        'zh': 'Chinese',
+        'zu': 'Zulu'
+    };
+    
+    return localeMap[languageCode] || 'Unknown';
+}

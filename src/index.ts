@@ -6,12 +6,11 @@ import {
   TranslationData,
   AppSession,
 } from '@mentra/sdk';
-import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
+import { TranscriptProcessor, languageToLocale, localeToLanguage, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
 import { ConfidenceCalculator, ConfidenceHeuristic } from './utils/confidenceHeuristics';
 import { ConversationManager } from './services/ConversationManager';
 import { setupAPI } from './api';
-import axios from 'axios';
 import fs from 'fs';
 import { Response } from 'express';
 
@@ -461,29 +460,20 @@ export class LiveTranslationApp extends AppServer {
     // Add translation to conversation manager for webview (bidirectional)
     const conversationManager = this.userConversationManagers.get(userId);
     if (conversationManager && translationData.didTranslate) {
-      // Determine the actual source and target languages based on what was detected
-      let actualSourceLang: string;
-      let actualTargetLang: string;
-      let originalText: string;
+      // Determine the actual source and target languages from the translation data
+      const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
+      const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
+      const originalText = translationData.originalText || '';
       
-      if (translationData.transcribeLanguage === sourceLocale.split('-')[0]) {
-        // Source language was spoken (e.g., English -> French)
-        actualSourceLang = sourceLanguage;
-        actualTargetLang = targetLanguage;
-        originalText = translationData.originalText || '';
-      } else {
-        // Target language was spoken (e.g., French -> English)
-        actualSourceLang = targetLanguage;
-        actualTargetLang = sourceLanguage;
-        originalText = translationData.originalText || '';
-      }
+      console.log(`[Language Detection] Detected: ${translationData.transcribeLanguage} (${detectedSourceLang}) → ${translationData.translateLanguage} (${detectedTargetLang})`);
+      console.log(`[Language Detection] originalText: "${originalText}", translatedText: "${newText}"`);
       
-      // Add the translation entry
+      // Add the translation entry with the actual detected languages
       const entry = conversationManager.addTranslation(
         originalText,
         newText,
-        actualSourceLang,
-        actualTargetLang,
+        detectedSourceLang,
+        detectedTargetLang,
         isFinal
       );
       
@@ -499,7 +489,7 @@ export class LiveTranslationApp extends AppServer {
       }
     }
 
-    let textToDisplay;
+    let textToDisplay: string;
     if (isFinal) {
       // For final translations, show the full transcript
       textToDisplay = transcriptProcessor.processString(newText, isFinal);
