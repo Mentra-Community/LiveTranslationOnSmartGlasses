@@ -400,6 +400,13 @@ class LiveTranslationApp extends AppServer {
       return;
     }
 
+    // We receive bi directional translations, so we need to check if the text is in the target language.
+    if (translationData.transcribeLanguage !== sourceLocale.split('-')[0]){
+      // If the text is not in the source language, we can skip processing it
+      console.log(`[Session ${sessionId}]: ⏭️ Skipping translation - text is not in source language. translationData.transcribeLanguage=${translationData.transcribeLanguage}, sourceLanguage=${sourceLocale}`);
+      return;
+    }
+
     // console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
 
     if (targetLanguage === 'Chinese (Pinyin)') {
@@ -430,7 +437,7 @@ class LiveTranslationApp extends AppServer {
       textToDisplay = transcriptProcessor.processString(confidentPrefix, false);
     }
 
-    console.log(`[Session ${sessionId}]: ${textToDisplay}`);
+    console.log(`[Session ${sessionId}]: ${translationData.transcribeLanguage}->${translationData.translateLanguage}: ${textToDisplay}`);
     console.log(`[Session ${sessionId}]: isFinal=${isFinal}`);
 
     this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
