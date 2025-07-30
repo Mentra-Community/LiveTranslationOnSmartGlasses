@@ -14,5 +14,8 @@ export default defineConfig({
   },
   server: {
     allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'localhost', 'translation.mentra.glass'],
-  }
+  },
+  preview: {
+    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'localhost', 'translation.mentra.glass', "https://webview-10410-4a24a192-ojqv695t.onporter.run"],
+  },
 })
