@@ -693,6 +693,10 @@ export class LiveTranslationApp extends AppServer {
         const conversationManager = this.userConversationManagers.get(userId);
         if (conversationManager) {
           conversationManager.clear();
+          
+          // Broadcast clear event to all connected webview clients
+          this.broadcastToUserSSEClients(userId, { type: 'clear', data: {} });
+          console.log(`[SSE] Sent clear event to all clients for user ${userId} due to inactivity`);
         }
         
         // Show empty state to user

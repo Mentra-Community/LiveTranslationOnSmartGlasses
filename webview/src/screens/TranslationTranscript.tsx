@@ -61,6 +61,12 @@ export const TranslationTranscript: React.FC = () => {
       console.log('SSE connected event received:', event.data);
     });
 
+    // Listen for the clear event (when conversation is cleared due to inactivity)
+    eventSource.addEventListener('clear', () => {
+      console.log('SSE clear event received - resetting conversation');
+      setEntries([]);
+    });
+
     eventSource.addEventListener('translation', (event) => {
       try {
         const data = JSON.parse(event.data) as TranslationEntry;
