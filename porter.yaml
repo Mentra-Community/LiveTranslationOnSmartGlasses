@@ -20,7 +20,7 @@ services:
 
 - name: webview
   type: web
-  run: cd webview && bun run preview
+  run: bun run start:webview
   port: 4173
   cpuCores: 1.0
   ramMegabytes: 1024

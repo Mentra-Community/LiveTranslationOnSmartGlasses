@@ -12,7 +12,7 @@ RUN bun install
 COPY . .
 
 # Install dependencies for the webview and build it
-RUN cd webview && bun install && bun run build
+RUN bun run build:webview
 
 # Expose the ports
 EXPOSE 80

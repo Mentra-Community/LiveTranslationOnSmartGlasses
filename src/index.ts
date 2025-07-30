@@ -262,6 +262,13 @@ export class LiveTranslationApp extends AppServer {
       const conversationManager = this.userConversationManagers.get(userId);
       if (conversationManager) {
         conversationManager.setLanguagePair(sourceLang, targetLang);
+        
+        // Broadcast language change to all connected webview clients
+        this.broadcastToUserSSEClients(userId, { 
+          type: 'languageChange', 
+          data: { from: sourceLang, to: targetLang } 
+        });
+        console.log(`[SSE] Sent language change event to all clients for user ${userId}: ${sourceLang} → ${targetLang}`);
       }
       
       // Update or initialize confidence calculator

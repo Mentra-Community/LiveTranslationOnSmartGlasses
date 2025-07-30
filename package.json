@@ -1,17 +1,19 @@
 {
-  "name": "@augmentos/livetranslation",
+  "name": "@mentra/livetranslation",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "build:webview": "cd webview && bun install && bun run build",
+    "start:webview": "cd webview && bun run preview --host",
     "ngrok:isaiah": "ngrok http --url=live-translation.ngrok.dev 8070",
     "ngrok:webview": "ngrok http --url=isaiah-webview.ngrok.app 5173",
-    "image:build": "docker build -t augmentos/live-trasnlation:latest -t augmentos/live-trasnlation:$npm_package_version -f docker/Dockerfile .",
-    "image:push": "docker push augmentos/live-trasnlation:latest && docker push augmentos/live-trasnlation:$npm_package_version",
+    "image:build": "docker build -t mentra/live-translation:latest -t mentra/live-translation:$npm_package_version -f docker/Dockerfile .",
+    "image:push": "docker push mentra/live-translation:latest && docker push mentra/live-translation:$npm_package_version",
     "image:release": "npm run image:build && npm run image:push",
-    "ghcr:build": "docker build -t ghcr.io/augmentos/live-trasnlation:latest -t ghcr.io/augmentos/live-trasnlation:$npm_package_version -f docker/Dockerfile .",
-    "ghcr:push": "docker push ghcr.io/augmentos/live-trasnlation:latest && docker push ghcr.io/augmentos/live-trasnlation:$npm_package_version",
+    "ghcr:build": "docker build -t ghcr.io/mentra/live-translation:latest -t ghcr.io/mentra/live-translation:$npm_package_version -f docker/Dockerfile .",
+    "ghcr:push": "docker push ghcr.io/mentra/live-translation:latest && docker push ghcr.io/mentra/live-translation:$npm_package_version",
     "ghcr:release": "npm run ghcr:build && npm run ghcr:push"
   },
   "dependencies": {

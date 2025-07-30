@@ -67,6 +67,20 @@ export const TranslationTranscript: React.FC = () => {
       setEntries([]);
     });
 
+    // Listen for language change events
+    eventSource.addEventListener('languageChange', (event) => {
+      try {
+        const data = JSON.parse(event.data) as LanguagePair;
+        console.log('SSE language change event received:', data);
+        setLanguagePair({
+          from: data.from,
+          to: data.to
+        });
+      } catch (error) {
+        console.error('Error parsing language change event:', error);
+      }
+    });
+
     eventSource.addEventListener('translation', (event) => {
       try {
         const data = JSON.parse(event.data) as TranslationEntry;
