@@ -4,7 +4,6 @@
 export interface TranslationEntry {
   id: string;
   timestamp: number;
-  speaker: 'glasses-wearer' | 'other-person';
   originalText: string;
   translatedText: string;
   originalLanguage: string;

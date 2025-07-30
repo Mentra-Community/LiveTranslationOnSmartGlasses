@@ -3,8 +3,8 @@
  */
 import { LanguagePair } from './types';
 
-// Use relative URLs for our API endpoints since we're serving from the same origin
-const API_BASE_URL = '';
+// Use environment variable for API URL, fallback to relative URLs in production
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Handler for SSE connections
 let eventSourceInstance: EventSource | null = null;
@@ -12,9 +12,11 @@ const eventListeners: Record<string, ((event: MessageEvent) => void)[]> = {};
 
 const api = {
   // Fetch language settings
-  async getLanguageSettings(): Promise<LanguagePair> {
+  async getLanguageSettings(headers?: HeadersInit): Promise<LanguagePair> {
     try {
-      const response = await fetch(`${API_BASE_URL}/language-settings`);
+      const response = await fetch(`${API_BASE_URL}/api/language-settings`, {
+        headers: headers || {},
+      });
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);

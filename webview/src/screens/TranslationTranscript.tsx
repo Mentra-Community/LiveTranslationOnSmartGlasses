@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TranslationEntry, LanguagePair } from '../types';
 import { simulateTranslationStream } from '../utils/mockData';
+import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 
 export const TranslationTranscript: React.FC = () => {
@@ -14,123 +15,96 @@ export const TranslationTranscript: React.FC = () => {
   
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const { getHeaders, getAuthQuery, isAuthenticated, isLoading } = useAuthenticatedApi();
   
   // Set up SSE connection for real-time translations
   useEffect(() => {
-    // Check if we're in development mode
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Don't connect if auth is still loading
+    if (isLoading) return;
+
+    console.log('Connecting to backend translation events...');
     
-    if (isDevelopment) {
-      console.log('Running in development mode - using mock data');
-      
-      // Set some mock language pair
-      setLanguagePair({
-        from: 'English',
-        to: 'Chinese (Hanzi)'
-      });
-      
-      // Simulate SSE connection
-      setListening(true);
-      
-      // Start mock data stream
-      const stopSimulation = simulateTranslationStream(
-        (newEntry: TranslationEntry) => {
-          // Update entries with the new data
-          setEntries(prev => {
-            // If we have no entries yet, just add this one
-            if (prev.length === 0) {
-              return [newEntry];
-            }
-            
-            // Check if this is an update to an existing entry
-            const existingIndex = prev.findIndex(entry => entry.id === newEntry.id);
-            
-            if (existingIndex >= 0) {
-              // Update existing entry
-              const updatedEntries = [...prev];
-              updatedEntries[existingIndex] = newEntry;
-              return updatedEntries;
-            } else {
-              // Add as new entry
-              return [...prev, newEntry];
-            }
-          });
-        },
-        3000 // New entry every 3 seconds for faster testing
-      );
-      
-      // Clean up simulation on unmount
-      return () => {
-        stopSimulation();
-        setListening(false);
-      };
-    } else {
-      // Production mode - connect to real API
-      
-      // Fetch language settings first
-      api.getLanguageSettings()
-        .then(data => {
-          setLanguagePair({
-            from: data.from,
-            to: data.to
-          });
-        })
-        .catch(error => {
-          console.error('Error fetching language settings:', error);
+    // Fetch language settings first
+    api.getLanguageSettings(getHeaders())
+      .then(data => {
+        setLanguagePair({
+          from: data.from,
+          to: data.to
         });
-      
-      // Connect to SSE
-      const eventSource = new EventSource('/translation-events');
-      eventSourceRef.current = eventSource;
-      
-      eventSource.onopen = () => {
-        setListening(true);
-        console.log('Connected to translation events');
-      };
-      
-      eventSource.onerror = (error) => {
-        setListening(false);
-        console.error('SSE connection error:', error);
-      };
-      
-      eventSource.addEventListener('translation', (event) => {
-        try {
-          const data = JSON.parse(event.data) as TranslationEntry;
-          
-          // Update entries based on the entry ID
-          setEntries(prev => {
-            // If we have no entries yet, just add this one
-            if (prev.length === 0) {
-              return [data];
-            }
-            
-            // Look for an existing entry with the same ID
-            const existingIndex = prev.findIndex(entry => entry.id === data.id);
-            
-            if (existingIndex >= 0) {
-              // This is an update to an existing entry
-              const updatedEntries = [...prev];
-              updatedEntries[existingIndex] = data;
-              return updatedEntries;
-            } else {
-              // This is a new entry
-              return [...prev, data];
-            }
-          });
-        } catch (error) {
-          console.error('Error parsing translation event:', error);
-        }
+      })
+      .catch(error => {
+        console.error('Error fetching language settings:', error);
+        // Set default language pair if API fails
+        setLanguagePair({
+          from: 'Unknown',
+          to: 'Unknown'
+        });
       });
-      
-      // Clean up on unmount
-      return () => {
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-        }
-        setListening(false);
-      };
-    }
-  }, []);
+    
+    // Connect to SSE using environment variable and auth token
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    const authQuery = getAuthQuery();
+    const eventSource = new EventSource(`${baseUrl}/translation-events${authQuery}`);
+    eventSourceRef.current = eventSource;
+    
+    eventSource.onopen = () => {
+      setListening(true);
+      console.log('Connected to translation events');
+    };
+    
+    eventSource.onerror = (error) => {
+      setListening(false);
+      console.error('SSE connection error:', error);
+    };
+    
+    // Listen for the connected event
+    eventSource.addEventListener('connected', (event) => {
+      console.log('SSE connected event received:', event.data);
+    });
+
+    eventSource.addEventListener('translation', (event) => {
+      try {
+        const data = JSON.parse(event.data) as TranslationEntry;
+        console.log('Received translation event:', {
+          id: data.id,
+          isFinal: data.isFinal,
+          originalLang: data.originalLanguage,
+          translatedLang: data.translatedLanguage
+        });
+        
+        // Update entries based on the entry ID
+        setEntries(prev => {
+          // If we have no entries yet, just add this one
+          if (prev.length === 0) {
+            return [data];
+          }
+          
+          // Look for an existing entry with the same ID
+          const existingIndex = prev.findIndex(entry => entry.id === data.id);
+          
+          if (existingIndex >= 0) {
+            // This is an update to an existing entry
+            const updatedEntries = [...prev];
+            updatedEntries[existingIndex] = data;
+            return updatedEntries;
+          } else {
+            // This is a new entry
+            return [...prev, data];
+          }
+        });
+      } catch (error) {
+        console.error('Error parsing translation event:', error, 'Raw data:', event.data);
+      }
+    });
+    
+    // Clean up on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      setListening(false);
+    };
+  }, [isLoading]); // Only re-run when loading state changes
   
   // Handle autoscroll
   useEffect(() => {
@@ -152,6 +126,28 @@ export const TranslationTranscript: React.FC = () => {
     }
   };
   
+  // Show loading state while authentication is loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication status if not authenticated in production
+  if (!isAuthenticated && process.env.NODE_ENV === 'production') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Please open this page from the MentraOS app.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
       <header className="border-b border-gray-200 p-4">
