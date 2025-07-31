@@ -6,7 +6,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build:webview": "cd webview && bun install && bun run build",
-    "start:webview": "cd webview && bun run dev --host",
+    "start:webview": "cd webview && bun run dev:prod --host",
     "ngrok:isaiah": "ngrok http --url=live-translation.ngrok.dev 8070",
     "ngrok:webview": "ngrok http --url=isaiah-webview.ngrok.app 5173",
     "ngrok:webview:preview": "ngrok http --url=isaiah-webview.ngrok.app 4173",
