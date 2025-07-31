@@ -20,6 +20,9 @@
       "@/*": ["./src/*"],
       "*": ["src/*"],
     },
+    "types": [
+      "vite-plugin-terminal/client"
+    ],
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

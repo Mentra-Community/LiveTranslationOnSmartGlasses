@@ -2,16 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from "path"
 import tailwindcss from '@tailwindcss/vite'
-import terminal from 'vite-plugin-terminal'
+import Terminal from 'vite-plugin-terminal'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     tailwindcss(), 
     react(),
-    terminal({
-      console: 'terminal',
-      strip: false // Keep terminal logs in production build for preview mode
+    Terminal({
+      output: ['terminal', 'console']
     })
   ],
   base: '/', // This prefix matches the static assets route in your TPA

@@ -2,9 +2,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from "path";
 import tailwindcss from '@tailwindcss/vite';
+import Terminal from 'vite-plugin-terminal'
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), react()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    Terminal({
+      output: ['terminal', 'console']
+    })
+  ],
   base: '/', // This prefix matches the static assets route in your TPA
   resolve: {
     alias: {
