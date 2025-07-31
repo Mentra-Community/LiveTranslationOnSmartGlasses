@@ -448,7 +448,7 @@ export class LiveTranslationApp extends AppServer {
     const displayMode = userDisplayModes.get(userId) || defaultSettings.displayMode;
     
     // Check if we should display this translation on the glasses
-    const shouldDisplayOnGlasses = translationData.transcribeLanguage === sourceLocale.split('-')[0];
+    const shouldDisplayOnGlasses = translationData.transcribeLanguage?.split('-')[0] === sourceLocale.split('-')[0];
     
     // For glasses display: filter based on display mode and source language
     if (displayMode === 'translations' && !translationData.didTranslate) {
