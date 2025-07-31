@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
+import { terminal } from 'virtual:terminal';
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
@@ -14,14 +15,15 @@ export const TranslationTranscript: React.FC = () => {
 
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { getHeaders, getAuthQuery, isAuthenticated, isLoading } = useAuthenticatedApi();
+  const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
 
   // Set up SSE connection for real-time translations
   useEffect(() => {
     // Don't connect if auth is still loading
     if (isLoading) return;
 
-    console.log('Connecting to backend translation events...');
+    terminal.log('Connecting to backend translation events...');
+    terminal.log('Auth state:', { isAuthenticated, hasToken: !!token, tokenPreview: token?.substring(0, 10) + '...' });
 
     // Fetch language settings first
     api.getLanguageSettings(getHeaders())
@@ -43,27 +45,30 @@ export const TranslationTranscript: React.FC = () => {
     // Connect to SSE using environment variable and auth token
     const baseUrl = import.meta.env.VITE_API_URL || '';
     const authQuery = getAuthQuery();
-    const eventSource = new EventSource(`${baseUrl}/translation-events${authQuery}`);
+    const sseUrl = `${baseUrl}/translation-events${authQuery}`;
+    terminal.log('SSE URL:', sseUrl);
+    terminal.log('Auth query:', authQuery);
+    const eventSource = new EventSource(sseUrl);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
       setListening(true);
-      console.log('Connected to translation events');
+      terminal.log('✅ Connected to translation events');
     };
 
     eventSource.onerror = (error) => {
       setListening(false);
-      console.error('SSE connection error:', error);
+      terminal.error('❌ SSE connection error:', error);
     };
 
     // Listen for the connected event
     eventSource.addEventListener('connected', (event) => {
-      console.log('SSE connected event received:', event.data);
+      terminal.log('SSE connected event received:', event.data);
     });
 
     // Listen for the clear event (when conversation is cleared due to inactivity)
     eventSource.addEventListener('clear', () => {
-      console.log('SSE clear event received - resetting conversation');
+      terminal.log('SSE clear event received - resetting conversation');
       setEntries([]);
     });
 
@@ -71,20 +76,20 @@ export const TranslationTranscript: React.FC = () => {
     eventSource.addEventListener('languageChange', (event) => {
       try {
         const data = JSON.parse(event.data) as LanguagePair;
-        console.log('SSE language change event received:', data);
+        terminal.log('SSE language change event received:', data);
         setLanguagePair({
           from: data.from,
           to: data.to
         });
       } catch (error) {
-        console.error('Error parsing language change event:', error);
+        terminal.error('Error parsing language change event:', error);
       }
     });
 
     eventSource.addEventListener('translation', (event) => {
       try {
         const data = JSON.parse(event.data) as TranslationEntry;
-        console.log('Received translation event:', {
+        terminal.log('Received translation event:', {
           id: data.id,
           isFinal: data.isFinal,
           originalLang: data.originalLanguage,
@@ -120,7 +125,7 @@ export const TranslationTranscript: React.FC = () => {
           }
         });
       } catch (error) {
-        console.error('Error parsing translation event:', error, 'Raw data:', event.data);
+        terminal.error('Error parsing translation event:', error, 'Raw data:', event.data);
       }
     });
 
@@ -131,7 +136,7 @@ export const TranslationTranscript: React.FC = () => {
       }
       setListening(false);
     };
-  }, [isLoading, getHeaders, getAuthQuery]); // Dependencies for API calls
+  }, [isLoading, getHeaders, getAuthQuery, isAuthenticated, token]); // Dependencies for API calls
 
   // Handle autoscroll
   useEffect(() => {

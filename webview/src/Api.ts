@@ -2,6 +2,7 @@
  * API service for the Translation webview
  */
 import { LanguagePair } from './types';
+import { terminal } from 'virtual:terminal';
 
 // Use environment variable for API URL, fallback to relative URLs in production
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -14,7 +15,10 @@ const api = {
   // Fetch language settings
   async getLanguageSettings(headers?: HeadersInit): Promise<LanguagePair> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/language-settings`, {
+      const url = `${API_BASE_URL}/api/language-settings`;
+      terminal.log('Fetching language settings from:', url);
+      terminal.log('Headers:', headers);
+      const response = await fetch(url, {
         headers: headers || {},
       });
       
@@ -24,7 +28,7 @@ const api = {
       
       return response.json();
     } catch (error) {
-      console.error('Error fetching language settings:', error);
+      terminal.error('Error fetching language settings:', error);
       return { from: 'Unknown', to: 'Unknown' };
     }
   },
@@ -42,15 +46,15 @@ const api = {
       
       // Handle connection events
       eventSourceInstance.onopen = () => {
-        console.log('SSE connection established with translation server');
+        terminal.log('✅ SSE connection established with translation server');
       };
       
       eventSourceInstance.onerror = (error) => {
-        console.error('SSE connection error:', error);
+        terminal.error('❌ SSE connection error:', error);
         
         // Auto-reconnect if closed
         if (eventSourceInstance?.readyState === EventSource.CLOSED) {
-          console.log('Attempting to reconnect to translation server...');
+          terminal.log('🔄 Attempting to reconnect to translation server...');
           eventSourceInstance = null;
           setTimeout(() => api.events.connect(), 3000);
         }
