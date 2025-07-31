@@ -21,7 +21,7 @@ services:
 - name: webview
   type: web
   run: bun run start:webview
-  port: 4173
+  port: 5173
   cpuCores: 1.0
   ramMegabytes: 1024
   env:
