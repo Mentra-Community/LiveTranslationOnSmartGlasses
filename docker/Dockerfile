@@ -11,8 +11,8 @@ RUN bun install
 # Copy the application code
 COPY . .
 
-# Don't build webview in production - we'll run dev mode for debugging
-# RUN bun run build:webview
+# Install webview dependencies (but don't build - we'll run dev mode for debugging)
+RUN cd webview && bun install
 
 # Expose the ports
 EXPOSE 80
