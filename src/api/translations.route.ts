@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { LiveTranslationApp } from '../index';
+import crypto from 'crypto';
 
 export const router = express.Router();
 
@@ -15,6 +16,36 @@ interface AuthRequest extends Request {
   authUserId?: string;
 }
 
+/**
+ * Verify frontend token (similar to SDK's internal verifyFrontendToken)
+ * Frontend tokens are in the format: userId:hash
+ */
+function verifyFrontendToken(frontendToken: string, apiKey: string): string | null {
+  try {
+    const tokenParts = frontendToken.split(':');
+    if (tokenParts.length === 2) {
+      const [tokenUserId, tokenHash] = tokenParts;
+      
+      // Hash the API key first (matching SDK implementation)
+      const hashedApiKey = crypto.createHash('sha256').update(apiKey).digest('hex');
+      
+      // Create the expected hash using userId + hashedApiKey
+      const expectedHash = crypto.createHash('sha256')
+        .update(tokenUserId)
+        .update(hashedApiKey)
+        .digest('hex');
+      
+      if (tokenHash === expectedHash) {
+        console.log('[SSE] Frontend token validated for user:', tokenUserId);
+        return tokenUserId;
+      }
+    }
+  } catch (error) {
+    console.error('[SSE] Error verifying frontend token:', error);
+  }
+  return null;
+}
+
 // SSE endpoint for real-time translation events
 async function translationEvents(req: AuthRequest, res: Response) {
   console.log(`[SSE] New connection attempt from ${req.headers.origin || 'unknown origin'}`);
@@ -24,10 +55,26 @@ async function translationEvents(req: AuthRequest, res: Response) {
   
   // If no userId from standard auth, check query parameter
   if (!userId && req.query.token) {
-    // In production, you would verify this token properly
-    // For now, we'll use dev-user for development
-    userId = 'dev-user';
-    console.log('[SSE] Using dev-user from token query parameter');
+    const token = req.query.token as string;
+    const apiKey = process.env.AUGMENTOS_API_KEY || process.env.MENTRAOS_API_KEY;
+    
+    if (apiKey) {
+      // Verify the frontend token and extract userId
+      userId = verifyFrontendToken(token, apiKey) || undefined;
+
+      if (userId) {
+        console.log('[SSE] Frontend token validated, using userId:', userId);
+      } else {
+        console.log('[SSE] Invalid frontend token provided');
+        // In development, fall back to dev-user
+        if (process.env.NODE_ENV !== 'production') {
+          userId = 'dev-user';
+          console.log('[SSE] Using dev-user fallback (dev mode)');
+        }
+      }
+    } else {
+      console.error('[SSE] No API key found to verify token');
+    }
   }
   
   // For development without auth, use the first active user from glasses
@@ -45,7 +92,7 @@ async function translationEvents(req: AuthRequest, res: Response) {
   
   // In production, enforce authentication
   if (process.env.NODE_ENV === 'production' && !req.authUserId && !req.query.token) {
-    console.log('[SSE] Rejecting connection - no authentication in production');
+    console.warn('[SSE] Rejecting connection - no authentication in production');
     return res.status(401).json({ error: 'Unauthorized' });
   }
   

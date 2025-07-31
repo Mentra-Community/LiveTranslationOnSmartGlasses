@@ -9,6 +9,7 @@
     "start:webview": "cd webview && bun run preview --host",
     "ngrok:isaiah": "ngrok http --url=live-translation.ngrok.dev 8070",
     "ngrok:webview": "ngrok http --url=isaiah-webview.ngrok.app 5173",
+    "ngrok:webview:preview": "ngrok http --url=isaiah-webview.ngrok.app 4173",
     "image:build": "docker build -t mentra/live-translation:latest -t mentra/live-translation:$npm_package_version -f docker/Dockerfile .",
     "image:push": "docker push mentra/live-translation:latest && docker push mentra/live-translation:$npm_package_version",
     "image:release": "npm run image:build && npm run image:push",
