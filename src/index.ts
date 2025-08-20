@@ -406,6 +406,8 @@ export class LiveTranslationApp extends AppServer {
 
     console.log(`[Session ${sessionId}]: Handling translation for user ${userId}`);
 
+
+// this place seems pretty sus here not gonna lie
     let transcriptProcessor = userTranscriptProcessors.get(userId);
     if (!transcriptProcessor) {
       const targetLang = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
@@ -446,11 +448,28 @@ export class LiveTranslationApp extends AppServer {
 
     // Get the display mode from settings or use default
     const displayMode = userDisplayModes.get(userId) || defaultSettings.displayMode;
-    
-    // Check if we should display this translation on the glasses
+
     const shouldDisplayOnGlasses = translationData.transcribeLanguage?.split('-')[0] === sourceLocale.split('-')[0];
+    // Determine what text to show on glasses based on target language preference
+    let glassesDisplayText = newText;
+    if (translationData.didTranslate) {
+      // If translation occurred, check if we should show original or translated text
+      const detectedTargetLocale = translationData.translateLanguage || '';
+      const userTargetLocale = languageToLocale(targetLanguage);
+      
+      // Show the text that matches the user's target language preference
+      if (detectedTargetLocale.split('-')[0] === userTargetLocale.split('-')[0]) {
+        // The translated text matches user's target language - show translated text
+        glassesDisplayText = newText;
+      } else {
+        
+        // The translated text doesn't match user's target language - show original text
+        glassesDisplayText = ""
+        
+      }
+    }
     
-    // For glasses display: filter based on display mode and source language
+    // For glasses display: only show translations when in 'translations' mode
     if (displayMode === 'translations' && !translationData.didTranslate) {
       console.log(`[Session ${sessionId}]: Skipping glasses display - not a translation`);
       // Don't return - still process for webview
@@ -458,10 +477,16 @@ export class LiveTranslationApp extends AppServer {
 
     // console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
 
+    // Apply Pinyin conversion to glasses display text if target is Pinyin
     if (targetLanguage === 'Chinese (Pinyin)') {
-      const pinyinTranscript = convertToPinyin(newText);
-      console.log(`[Session ${sessionId}]: Converting Chinese to Pinyin`);
-      newText = pinyinTranscript;
+      const pinyinTranscript = convertToPinyin(glassesDisplayText);
+      console.log(`[Session ${sessionId}]: Converting Chinese to Pinyin for glasses display`);
+      glassesDisplayText = pinyinTranscript;
+      
+      // Also convert newText for webview if it's Chinese
+      if (newText === glassesDisplayText) {
+        newText = pinyinTranscript;
+      }
     }
 
     // Add translation to conversation manager for webview (bidirectional)
@@ -475,6 +500,8 @@ export class LiveTranslationApp extends AppServer {
       console.log(`[Language Detection] Detected: ${translationData.transcribeLanguage} (${detectedSourceLang}) → ${translationData.translateLanguage} (${detectedTargetLang})`);
       console.log(`[Language Detection] originalText: "${originalText}", translatedText: "${newText}"`);
       
+      console.log("Right here: -> ", {originalText})
+      console.log("Right here: -> ", {newText})
       // Add the translation entry with the actual detected languages
       const entry = conversationManager.addTranslation(
         originalText,
@@ -498,8 +525,9 @@ export class LiveTranslationApp extends AppServer {
 
     let textToDisplay: string;
     if (isFinal) {
-      // For final translations, show the full transcript
-      textToDisplay = transcriptProcessor.processString(newText, isFinal);
+      // For final translations, show the glasses display text
+      textToDisplay = transcriptProcessor.processString(glassesDisplayText, isFinal);
+      
       confidenceCalculator.resetState(); // Reset confidence state on final transcript
       confidenceCalculator.resetInterimTracking(); // Reset interim tracking after final transcript
       console.log(`[Session ${sessionId}]: finalTranscriptCount=${transcriptProcessor.getFinalTranscriptHistory().length}`);
@@ -508,25 +536,27 @@ export class LiveTranslationApp extends AppServer {
       const isHanzi = targetLanguage.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
       let confidentPrefix: string;
       if (confidenceHeuristicSetting === 'None') {
-        confidentPrefix = newText;
+        confidentPrefix = glassesDisplayText;
       } else {
         // Update the confidence calculator's state for this interim
-        confidenceCalculator.calculateConfidence(newText, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
-        confidentPrefix = confidenceCalculator.getNonShrinkingConfidentPrefix(newText, 0.4, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+        confidenceCalculator.calculateConfidence(glassesDisplayText, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+        confidentPrefix = confidenceCalculator.getNonShrinkingConfidentPrefix(glassesDisplayText, 0.4, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
       }
       // Only pass the confident prefix to the processor (it manages its own history)
       textToDisplay = transcriptProcessor.processString(confidentPrefix, false);
     }
 
-    // Only display on glasses if it's the configured source language
-    if (shouldDisplayOnGlasses && displayMode === 'translations') {
-      console.log(`[Session ${sessionId}]: ${translationData.transcribeLanguage}->${translationData.translateLanguage}: ${textToDisplay}`);
+    // Display logic based on mode and translation status
+    if (displayMode === 'translations' && translationData.didTranslate) {
+      console.log(`[Session ${sessionId}]: Showing translation ${translationData.transcribeLanguage}->${translationData.translateLanguage}: ${textToDisplay}`);
       console.log(`[Session ${sessionId}]: isFinal=${isFinal}`);
       this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
     } else if (displayMode === 'everything') {
       // Show everything mode - display all translations
-      console.log(`[Session ${sessionId}]: Showing all translations: ${textToDisplay}`);
+      console.log(`[Session ${sessionId}]: Showing all: ${textToDisplay}`);
       this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
+    } else {
+      console.log(`[Session ${sessionId}]: Skipping glasses display - displayMode=${displayMode}, didTranslate=${translationData.didTranslate}`);
     }
   }
 
