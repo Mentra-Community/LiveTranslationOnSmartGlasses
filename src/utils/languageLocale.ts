@@ -167,7 +167,8 @@ export function languageToLocale(localeString: string): string {
             return "fi-FI";
         case "Filipino":
         case "Filipino (Philippines)":
-            return "fil-PH";
+            return "tl-PH";
+            // return "fil-PH";
         case "French (Belgium)":
             return "fr-BE";
         case "French (Canada)":
@@ -364,7 +365,7 @@ export function languageToLocale(localeString: string): string {
         case "Odia":
             return "or-IN";
         case "Tagalog":
-            return "fil-PH";
+            return "tl-PH";
         case "Yoruba":
             return "yo-NG";
         case "Igbo":
@@ -462,6 +463,7 @@ export function localeToLanguage(localeCode: string): string {
         'te': 'Telugu',
         'th': 'Thai',
         'tr': 'Turkish',
+        'tl': 'Tagalog',
         'uk': 'Ukrainian',
         'ur': 'Urdu',
         'uz': 'Uzbek',
