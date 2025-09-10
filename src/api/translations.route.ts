@@ -165,6 +165,38 @@ async function getLanguageSettings(req: AuthRequest, res: Response) {
   }
 }
 
+/**
+ * Check if the userid app session is active
+ */
+async function checkUserAppSessionActive(req: Request, res: Response): Promise<void> {
+  try {
+    const { email } = req.query;
+    
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: 'Email parameter is required' });
+      return;
+    }
+
+    // Get active users from the app
+    const activeUsers = Array.from(app.getActiveUsers());
+    const isActive = activeUsers.includes(email);
+    
+    console.log(`[API] Checking if user ${email} is active: ${isActive}`);
+    console.log(`[API] Active users: ${activeUsers.join(', ')}`);
+    
+    res.json({ 
+      success: true,
+      email: email,
+      active: isActive,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('[API] Error checking user active status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 // Routes
 router.get('/translation-events', translationEvents);
 router.get('/api/language-settings', getLanguageSettings);
+router.get('/api/user-app-session-active', checkUserAppSessionActive);

@@ -3,11 +3,16 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
+import TpaConnectionError from './TpaConnectionError';
+// import
+
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
   const [listening, setListening] = useState(false);
+  const [isUserIdAppSession, setIsUserIdAppSession] = useState(false);
+  const [isCheckingUserSession, setIsCheckingUserSession] = useState(true);
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
     from: 'Unknown',
     to: 'Unknown'
@@ -24,6 +29,23 @@ export const TranslationTranscript: React.FC = () => {
 
     terminal.log('Connecting to backend translation events...');
     terminal.log('Auth state:', { isAuthenticated, hasToken: !!token, tokenPreview: token?.substring(0, 10) + '...' });
+    terminal.log('Current user token (full):', token);
+    const userId = token?.split(':')[0];
+    terminal.log('User email/ID from token:', userId);
+    
+    // Check if this userId has an active app session on TPA server (in memeory)
+    setIsCheckingUserSession(true);
+    api.getUserAppActive(userId || 'unknown-user')
+      .then(userActivity => {
+        terminal.log(`userId: ${userId} app session is ${userActivity.active? "online": "offline"}`);
+        setIsUserIdAppSession(userActivity.active);
+        setIsCheckingUserSession(false);
+      })
+      .catch(error => {
+        terminal.error('Error fetching user activity:', error);
+        setIsUserIdAppSession(false);
+        setIsCheckingUserSession(false);
+      });
 
     // Fetch language settings first
     api.getLanguageSettings(getHeaders())
@@ -183,8 +205,22 @@ export const TranslationTranscript: React.FC = () => {
     );
   }
 
+  // Show loading while checking user session
+  if (isCheckingUserSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking connection...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
+    <div>
+      {isAuthenticated && isUserIdAppSession?     
+      <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
       <header className="border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-medium m-0">Live Translation</h1>
@@ -251,6 +287,9 @@ export const TranslationTranscript: React.FC = () => {
         <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
         {listening ? 'Listening...' : 'Not connected'}
       </div> */}
+    </div> : 
+      <TpaConnectionError />
+    }
     </div>
   );
 };
