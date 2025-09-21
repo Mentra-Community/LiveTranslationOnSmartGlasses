@@ -3,11 +3,51 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
+import { ArrowLeftRight, Languages, MoveRight, ScrollText } from 'lucide-react';
+import { Switch } from '../components/ui/switch';
+import SplashScreen from './SplashScreen';
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
   const [listening, setListening] = useState(false);
+  const [userNote, setUserNote] = useState('');
+  const [showSplash, setShowSplash] = useState(false);
+
+  // Language list from TPA config
+  const languages = [
+    "English", "Chinese (Mandarin)", "Cantonese", "Spanish", "Portuguese", "French", 
+    "Hindi", "Standard Arabic", "Bengali", "Russian", "Indonesian", "Afrikaans", 
+    "Albanian", "Amharic", "Armenian", "Assamese", "Azerbaijani", "Basque", 
+    "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Croatian", 
+    "Czech", "Danish", "Dutch", "Estonian", "Filipino", "Finnish", "Galician", 
+    "Georgian", "German", "Greek", "Gujarati", "Hausa", "Hebrew", "Hungarian", 
+    "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", "Japanese", "Javanese", 
+    "Kannada", "Kazakh", "Khmer", "Korean", "Lao", "Latvian", "Lithuanian", 
+    "Macedonian", "Malay", "Malayalam", "Maltese", "Marathi", "Mongolian", 
+    "Nepali", "Norwegian Bokmål", "Odia", "Pashto", "Persian", "Polish", 
+    "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", "Slovenian", 
+    "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", 
+    "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
+  ];
+
+  const targetLanguages = [
+    "English", "Chinese (Hanzi)", "Chinese (Pinyin)", "Cantonese", "Spanish", 
+    "Portuguese", "French", "Hindi", "Standard Arabic", "Bengali", "Russian", 
+    "Indonesian", "Afrikaans", "Albanian", "Amharic", "Armenian", "Assamese", 
+    "Azerbaijani", "Basque", "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", 
+    "Catalan", "Croatian", "Czech", "Danish", "Dutch", "Estonian", "Filipino", 
+    "Finnish", "Galician", "Georgian", "German", "Greek", "Gujarati", "Hausa", 
+    "Hebrew", "Hungarian", "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", 
+    "Japanese", "Javanese", "Kannada", "Kazakh", "Khmer", "Korean", "Lao", 
+    "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", 
+    "Marathi", "Mongolian", "Nepali", "Norwegian Bokmål", "Odia", "Pashto", 
+    "Persian", "Polish", "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", 
+    "Slovenian", "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", 
+    "Thai", "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
+  ];
+
+
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
     from: 'Unknown',
     to: 'Unknown'
@@ -16,6 +56,75 @@ export const TranslationTranscript: React.FC = () => {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
+
+  // Check if splash should be shown based on 10-minute timer
+  useEffect(() => {
+    const SPLASH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+    // const SPLASH_INTERVAL = 20000; // 10 minutes in milliseconds
+
+    const SPLASH_DURATION = 3000; // 3 seconds
+    const lastSplashTime = localStorage.getItem('lastSplashTime');
+    const currentTime = Date.now();
+
+    if (!lastSplashTime || (currentTime - parseInt(lastSplashTime)) >= SPLASH_INTERVAL) {
+      // Show splash screen
+      setShowSplash(true);
+      localStorage.setItem('lastSplashTime', currentTime.toString());
+      
+      // Hide splash after 3 seconds
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, SPLASH_DURATION);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Separate useEffect to handle hiding splash after it's shown
+  useEffect(() => {
+    if (showSplash) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  const handleNoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUserNote(value);
+  };
+
+  const handleSourceLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSourceLang = e.target.value;
+    terminal.log('Source language changed to:', newSourceLang);
+    
+    try {
+      const updatedPair = await api.updateLanguageSettings(
+        { from: newSourceLang },
+        getHeaders()
+      );
+      setLanguagePair(updatedPair);
+    } catch (error) {
+      terminal.error('Failed to update source language:', error);
+    }
+  };
+
+  const handleTargetLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTargetLang = e.target.value;
+    terminal.log('Target language changed to:', newTargetLang);
+    
+    try {
+      const updatedPair = await api.updateLanguageSettings(
+        { to: newTargetLang },
+        getHeaders()
+      );
+      setLanguagePair(updatedPair);
+    } catch (error) {
+      terminal.error('Failed to update target language:', error);
+    }
+  };
 
   // Set up SSE connection for real-time translations
   useEffect(() => {
@@ -185,10 +294,76 @@ export const TranslationTranscript: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
-      <header className="border-b border-gray-200 p-4">
+      {!showSplash ? 
+            <>
+       <header className="flex flex-row  border-b border-gray-200 p-4 w-full  bg-black bg-gradient-to-r from-[#677CE7] to-[#744FA8] justify-center items-center ">
+          <h1 className='text-white font-bold text-xl flex items-center gap-2 flex-1'>
+            <Languages className="w-6 h-6" />
+            Live Translation
+          </h1>
+          <div className="status-indicator">
+            <div className="text-xs text-white mt-1">
+              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              {listening ? 'Listening...' : 'Not connected'}
+            </div>
+          </div>
+      </header>
+      <div className="p-3 bg-white border-b border-gray-200">
+        <input
+          type="text"
+          value={userNote}
+          onChange={handleNoteChange}
+          placeholder="Type a note... (will be remembered when you come back)"
+          className="w-full p-2 border border-gray-300 rounded-md text-sm"
+        />
+      </div>
+      <div className=" flex flex-row pt-[10px] pb-[10px] border-b border-gray-200 justify-center items-center gap-3 pr-[15px] pl-[15px] ">
+        <select 
+          className="p-2 border rounded-md w-full h-[40px] border-gray-300 text-[13px] appearance-none"
+          value={languagePair.from}
+          onChange={handleSourceLanguageChange}
+        >
+          {languages.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
+
+        <div className='flex flex-col w-[40px] h-[40px]  justify-center items-center rounded-full bg-indigo-500 p-[12px] text-[white]'>
+          <MoveRight size={40} className='' />
+          <p className=' absolute text-[5px] mt-[-3px] font-bold mb-[-20px]'> TO</p>
+
+        </div>
+
+        <select 
+          className="p-2 border rounded-md w-full h-[40px] border-gray-300 text-[13px] appearance-none"
+          value={languagePair.to}
+          onChange={handleTargetLanguageChange}
+        >
+          {targetLanguages.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className='border-b border-gray-200 p-4 flex items-center gap-2'>
+        <ScrollText color='#374151' />
+        <p color='#374151' className='flex-1'>Auto-scroll</p>
+        <Switch 
+          checked={autoscrollEnabled} 
+          onCheckedChange={setAutoscrollEnabled}
+          className="data-[state=checked]:bg-indigo-500"
+        />
+      </div>
+      
+
+      <header className="border-b border-gray-200 p-4 ">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-medium m-0">Live Translation</h1>
-          <div className="text-sm text-gray-500 mt-1">
+          <div className="text-sm text-black mt-1">
             <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
             {listening ? 'Listening...' : 'Not connected'}
           </div>
@@ -210,7 +385,7 @@ export const TranslationTranscript: React.FC = () => {
       </header>
 
       <div
-        className="bg-white flex-1 overflow-y-auto"
+        className="bg-white flex-1 overflow-y-auto gap-[10px] flex flex-col p-4"
         ref={transcriptRef}
         onScroll={handleScroll}
         style={{ paddingBottom: '100px' }}
@@ -221,28 +396,31 @@ export const TranslationTranscript: React.FC = () => {
           </div>
         ) : (
           entries.map(entry => (
-            <div key={entry.id} className={` pb-4 border-b border-gray-100 ${
-              // Use different shades based on translation direction
-              // Compare just the first few characters to handle variations
-              entry.originalLanguage === languagePair.from || 
-              entry.originalLanguage.toLowerCase() === languagePair.from.toLowerCase() ? 
-                'bg-white' : 'bg-gray-100'
-            } p-4`}>
-              <div className="text-sm font-medium text-blue-600 mb-2 flex items-center">
-                <span className="bg-blue-100 px-2 py-0.5 rounded">
-                  {entry.originalLanguage} → {entry.translatedLanguage}
-                </span>
-              </div>
-              <div className="text-sm text-gray-600 mb-1.5">
-                {entry.originalText}
-              </div>
-              <div className="text-lg text-gray-900 font-medium">
-                {entry.translatedText}
-              </div>
-              <div className="text-xs text-gray-400 mt-2 text-right">
-                {new Date(entry.timestamp).toLocaleTimeString()}
+            <div className='bg-[#667EEA] rounded-[20px] shadow-md'>
+              <div key={entry.id} className={` pb-4 rounded-[20px] ml-[5px]  ${
+                // Use different shades based on translation direction
+                // Compare just the first few characters to handle variations
+                entry.originalLanguage === languagePair.from || 
+                entry.originalLanguage.toLowerCase() === languagePair.from.toLowerCase() ? 
+                  'bg-white' : 'bg-gray-100'
+              } p-4`}>
+                <div className="text-sm font-medium text-blue-600 mb-2 flex items-center">
+                  <span className="bg-blue-100 px-2 py-0.5 rounded">
+                    {entry.originalLanguage} → {entry.translatedLanguage}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 mb-1.5">
+                  {entry.originalText}
+                </div>
+                <div className="text-lg text-gray-900 font-medium">
+                  {entry.translatedText}
+                </div>
+                <div className="text-xs text-gray-400 mt-2 text-right">
+                  {new Date(entry.timestamp).toLocaleTimeString()}
+                </div>
               </div>
             </div>
+            
           ))
         )}
       </div>
@@ -251,6 +429,11 @@ export const TranslationTranscript: React.FC = () => {
         <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
         {listening ? 'Listening...' : 'Not connected'}
       </div> */}
+      </>
+      
+      : <SplashScreen/>}
+
+     
     </div>
   );
 };

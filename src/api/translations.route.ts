@@ -165,6 +165,55 @@ async function getLanguageSettings(req: AuthRequest, res: Response) {
   }
 }
 
+// Update language settings
+async function updateLanguageSettings(req: AuthRequest, res: Response) {
+  console.log(`[API] Language settings update request from ${req.headers.origin || 'unknown'}`);
+  
+  const { from, to } = req.body;
+  
+  if (!from && !to) {
+    return res.status(400).json({ error: 'At least one language must be specified' });
+  }
+  
+  // For development without auth, use the first active user from glasses
+  let userId = req.authUserId;
+  if (!userId) {
+    const activeUsers = Array.from(app.getActiveUsers());
+    if (activeUsers.length > 0) {
+      userId = activeUsers[0];
+      console.log(`[API] Using active glasses user: ${userId} (dev mode)`);
+    } else {
+      userId = 'dev-user';
+      console.log('[API] No active glasses users, using default dev-user');
+    }
+  }
+  console.log(`[API] Updating language settings for user: ${userId}`, { from, to });
+  
+  // In production, enforce authentication
+  if (process.env.NODE_ENV === 'production' && !req.authUserId) {
+    console.log('[API] Rejecting request - no authentication in production');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Update the languages in the app
+  try {
+    const success = app.updateUserLanguages(userId, from, to);
+    if (success) {
+      const conversationManager = app.getConversationManagerForUser(userId);
+      const updatedLanguagePair = conversationManager?.getLanguagePair() || { from: from || 'Unknown', to: to || 'Unknown' };
+      console.log(`[API] Successfully updated language settings: ${updatedLanguagePair.from} -> ${updatedLanguagePair.to}`);
+      res.json(updatedLanguagePair);
+    } else {
+      console.error(`[API] Failed to update language settings for user: ${userId}`);
+      res.status(500).json({ error: 'Failed to update language settings' });
+    }
+  } catch (error) {
+    console.error(`[API] Error updating language settings:`, error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 // Routes
 router.get('/translation-events', translationEvents);
 router.get('/api/language-settings', getLanguageSettings);
+router.post('/api/language-settings', updateLanguageSettings);

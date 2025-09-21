@@ -43,6 +43,34 @@ const api = {
       return { from: 'Unknown', to: 'Unknown' };
     }
   },
+
+  // Update language settings
+  async updateLanguageSettings(languagePair: Partial<LanguagePair>, headers?: HeadersInit): Promise<LanguagePair> {
+    try {
+      const url = `${API_BASE_URL}/api/language-settings`;
+      terminal.log('Updating language settings to:', languagePair);
+      terminal.log('Headers:', headers);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(headers || {}),
+        },
+        body: JSON.stringify(languagePair),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const updatedPair = await response.json();
+      terminal.log('Language settings updated successfully:', updatedPair);
+      return updatedPair;
+    } catch (error) {
+      terminal.error('Error updating language settings:', error);
+      throw error;
+    }
+  },
   
   // Events (SSE) endpoints
   events: {

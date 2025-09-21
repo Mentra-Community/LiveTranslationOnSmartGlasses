@@ -148,8 +148,8 @@ export class LiveTranslationApp extends AppServer {
       userTranscriptProcessors.set(userId, transcriptProcessor);
       
       // Default source and target languages from config
-      const sourceLang = defaultSettings.transcribeLanguage;
-      const targetLang = defaultSettings.translateLanguage;
+      const sourceLang = "English";
+      const targetLang = "Chinese (Hanzi)";
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
 
@@ -227,9 +227,9 @@ export class LiveTranslationApp extends AppServer {
     userId: string
   ): Promise<void> {
     try {
-      // Extract settings
-      const sourceLang = session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
-      const targetLang = session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+      // Extract settings - use stored languages or defaults
+      const sourceLang = userSourceLanguages.get(userId) || session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
+      const targetLang = userTargetLanguages.get(userId) || session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
       const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
@@ -677,6 +677,36 @@ export class LiveTranslationApp extends AppServer {
    */
   public getActiveUsers(): Set<string> {
     return new Set(this.activeUserSessions.keys());
+  }
+
+  /**
+   * Update user languages and trigger settings reapplication
+   */
+  public updateUserLanguages(userId: string, sourceLanguage?: string, targetLanguage?: string): boolean {
+    try {
+      // Update stored languages if provided
+      if (sourceLanguage) {
+        userSourceLanguages.set(userId, sourceLanguage);
+      }
+      if (targetLanguage) {
+        userTargetLanguages.set(userId, targetLanguage);
+      }
+
+      // Get the active session for this user
+      const activeSession = this.activeUserSessions.get(userId);
+      if (!activeSession) {
+        console.log(`No active session found for user ${userId}`);
+        return false;
+      }
+
+      // Reapply settings with the new languages
+      this.applySettings(activeSession.session, activeSession.sessionId, userId);
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating user languages for ${userId}:`, error);
+      return false;
+    }
   }
 
   /**
