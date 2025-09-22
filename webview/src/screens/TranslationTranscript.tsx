@@ -6,6 +6,8 @@ import { terminal } from 'virtual:terminal';
 import { ArrowLeftRight, Languages, MoveRight, ScrollText } from 'lucide-react';
 import { Switch } from '../components/ui/switch';
 import SplashScreen from './SplashScreen';
+import Select from "react-select";
+import languages from "../soniox/Languages.json"
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
@@ -15,21 +17,21 @@ export const TranslationTranscript: React.FC = () => {
   const [showSplash, setShowSplash] = useState(false);
 
   // Language list from TPA config
-  const languages = [
-    "English", "Chinese (Mandarin)", "Cantonese", "Spanish", "Portuguese", "French", 
-    "Hindi", "Standard Arabic", "Bengali", "Russian", "Indonesian", "Afrikaans", 
-    "Albanian", "Amharic", "Armenian", "Assamese", "Azerbaijani", "Basque", 
-    "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Croatian", 
-    "Czech", "Danish", "Dutch", "Estonian", "Filipino", "Finnish", "Galician", 
-    "Georgian", "German", "Greek", "Gujarati", "Hausa", "Hebrew", "Hungarian", 
-    "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", "Japanese", "Javanese", 
-    "Kannada", "Kazakh", "Khmer", "Korean", "Lao", "Latvian", "Lithuanian", 
-    "Macedonian", "Malay", "Malayalam", "Maltese", "Marathi", "Mongolian", 
-    "Nepali", "Norwegian Bokmål", "Odia", "Pashto", "Persian", "Polish", 
-    "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", "Slovenian", 
-    "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", 
-    "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
-  ];
+  // const languages = [
+  //   "English", "Chinese (Mandarin)", "Cantonese", "Spanish", "Portuguese", "French", 
+  //   "Hindi", "Standard Arabic", "Bengali", "Russian", "Indonesian", "Afrikaans", 
+  //   "Albanian", "Amharic", "Armenian", "Assamese", "Azerbaijani", "Basque", 
+  //   "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Croatian", 
+  //   "Czech", "Danish", "Dutch", "Estonian", "Filipino", "Finnish", "Galician", 
+  //   "Georgian", "German", "Greek", "Gujarati", "Hausa", "Hebrew", "Hungarian", 
+  //   "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", "Japanese", "Javanese", 
+  //   "Kannada", "Kazakh", "Khmer", "Korean", "Lao", "Latvian", "Lithuanian", 
+  //   "Macedonian", "Malay", "Malayalam", "Maltese", "Marathi", "Mongolian", 
+  //   "Nepali", "Norwegian Bokmål", "Odia", "Pashto", "Persian", "Polish", 
+  //   "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", "Slovenian", 
+  //   "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", 
+  //   "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
+  // ];
 
   const targetLanguages = [
     "English", "Chinese (Hanzi)", "Chinese (Pinyin)", "Cantonese", "Spanish", 
@@ -296,41 +298,33 @@ export const TranslationTranscript: React.FC = () => {
     <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
       {!showSplash ? 
             <>
-       <header className="flex flex-row  border-b border-gray-200 p-4 w-full  bg-black bg-gradient-to-r from-[#677CE7] to-[#744FA8] justify-center items-center ">
+       <header className="flex flex-row  border-b border-gray-200 p-4 w-full  bg-[#202020]  justify-center items-center ">
           <h1 className='text-white font-bold text-xl flex items-center gap-2 flex-1'>
             <Languages className="w-6 h-6" />
-            Live Translation
+            Translation
           </h1>
           <div className="status-indicator">
             <div className="text-xs text-white mt-1">
-              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-[#ffffff]' : 'bg-gray-300'}`}></span>
               {listening ? 'Listening...' : 'Not connected'}
             </div>
           </div>
       </header>
-      <div className="p-3 bg-white border-b border-gray-200">
-        <input
-          type="text"
-          value={userNote}
-          onChange={handleNoteChange}
-          placeholder="Type a note... (will be remembered when you come back)"
-          className="w-full p-2 border border-gray-300 rounded-md text-sm"
-        />
-      </div>
+
       <div className=" flex flex-row pt-[10px] pb-[10px] border-b border-gray-200 justify-center items-center gap-3 pr-[15px] pl-[15px] ">
         <select 
           className="p-2 border rounded-md w-full h-[40px] border-gray-300 text-[13px] appearance-none"
           value={languagePair.from}
           onChange={handleSourceLanguageChange}
         >
-          {languages.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang}
+        {Object.entries(languages).map(([code, lang]) => (
+            <option key={code} value={code}>
+              {Object.values(lang.source_language)[0]} {/* e.g. "afrikaans" */}
             </option>
           ))}
         </select>
 
-        <div className='flex flex-col w-[40px] h-[40px]  justify-center items-center rounded-full bg-indigo-500 p-[12px] text-[white]'>
+        <div className='flex flex-col w-[40px] h-[40px]  justify-center items-center rounded-full bg-[#303030] p-[12px] text-[white]'>
           <MoveRight size={40} className='' />
           <p className=' absolute text-[5px] mt-[-3px] font-bold mb-[-20px]'> TO</p>
 
@@ -355,34 +349,12 @@ export const TranslationTranscript: React.FC = () => {
         <Switch 
           checked={autoscrollEnabled} 
           onCheckedChange={setAutoscrollEnabled}
-          className="data-[state=checked]:bg-indigo-500"
+          className="data-[state=checked]:bg-[#303030]"
         />
       </div>
       
 
-      <header className="border-b border-gray-200 p-4 ">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-medium m-0">Live Translation</h1>
-          <div className="text-sm text-black mt-1">
-            <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-            {listening ? 'Listening...' : 'Not connected'}
-          </div>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {languagePair.from} ↔ {languagePair.to}
-        </p>
-        <div className="mt-2 flex items-center">
-          <label className="flex items-center text-sm">
-            <input
-              type="checkbox"
-              className="mr-2"
-              checked={autoscrollEnabled}
-              onChange={() => setAutoscrollEnabled(!autoscrollEnabled)}
-            />
-            Auto-scroll
-          </label>
-        </div>
-      </header>
+
 
       <div
         className="bg-white flex-1 overflow-y-auto gap-[10px] flex flex-col p-4"
@@ -396,7 +368,7 @@ export const TranslationTranscript: React.FC = () => {
           </div>
         ) : (
           entries.map(entry => (
-            <div className='bg-[#667EEA] rounded-[20px] shadow-md'>
+            <div className='bg-[#8b8b8b] rounded-[20px] shadow-md'>
               <div key={entry.id} className={` pb-4 rounded-[20px] ml-[5px]  ${
                 // Use different shades based on translation direction
                 // Compare just the first few characters to handle variations
@@ -404,8 +376,8 @@ export const TranslationTranscript: React.FC = () => {
                 entry.originalLanguage.toLowerCase() === languagePair.from.toLowerCase() ? 
                   'bg-white' : 'bg-gray-100'
               } p-4`}>
-                <div className="text-sm font-medium text-blue-600 mb-2 flex items-center">
-                  <span className="bg-blue-100 px-2 py-0.5 rounded">
+                <div className="text-sm font-medium text-white mb-2 flex items-center">
+                  <span className="bg-gray-400 px-2 py-0.5 rounded">
                     {entry.originalLanguage} → {entry.translatedLanguage}
                   </span>
                 </div>
