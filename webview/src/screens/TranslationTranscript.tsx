@@ -3,57 +3,62 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
-import { ArrowLeftRight, Languages, MoveRight, ScrollText } from 'lucide-react';
+import { ArrowLeftRight, Languages, Mic, MoveRight, ScrollText } from 'lucide-react';
 import { Switch } from '../components/ui/switch';
 import SplashScreen from './SplashScreen';
 import Select from "react-select";
 import languages from "../soniox/Languages.json"
+import { motion } from 'framer-motion';
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
   const [listening, setListening] = useState(false);
-  const [userNote, setUserNote] = useState('');
   const [showSplash, setShowSplash] = useState(false);
+  const [targetLangAvailable, setTargetLangAvailable] = useState<string[]>([]);
+  
+  // Prepare options for React Select dropdowns
+  const sourceLanguageOptions = Object.entries(languages).map(([code, lang]) => {
+    const displayName = (Object.values((lang as any).source_language)[0] as string).charAt(0).toUpperCase() + (Object.values((lang as any).source_language)[0] as string).slice(1);
+    return {
+      value: code,
+      label: displayName
+    };
+  });
 
-  // Language list from TPA config
-  // const languages = [
-  //   "English", "Chinese (Mandarin)", "Cantonese", "Spanish", "Portuguese", "French", 
-  //   "Hindi", "Standard Arabic", "Bengali", "Russian", "Indonesian", "Afrikaans", 
-  //   "Albanian", "Amharic", "Armenian", "Assamese", "Azerbaijani", "Basque", 
-  //   "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Croatian", 
-  //   "Czech", "Danish", "Dutch", "Estonian", "Filipino", "Finnish", "Galician", 
-  //   "Georgian", "German", "Greek", "Gujarati", "Hausa", "Hebrew", "Hungarian", 
-  //   "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", "Japanese", "Javanese", 
-  //   "Kannada", "Kazakh", "Khmer", "Korean", "Lao", "Latvian", "Lithuanian", 
-  //   "Macedonian", "Malay", "Malayalam", "Maltese", "Marathi", "Mongolian", 
-  //   "Nepali", "Norwegian Bokmål", "Odia", "Pashto", "Persian", "Polish", 
-  //   "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", "Slovenian", 
-  //   "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", 
-  //   "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
-  // ];
-
-  const targetLanguages = [
-    "English", "Chinese (Hanzi)", "Chinese (Pinyin)", "Cantonese", "Spanish", 
-    "Portuguese", "French", "Hindi", "Standard Arabic", "Bengali", "Russian", 
-    "Indonesian", "Afrikaans", "Albanian", "Amharic", "Armenian", "Assamese", 
-    "Azerbaijani", "Basque", "Bhojpuri", "Bosnian", "Bulgarian", "Burmese", 
-    "Catalan", "Croatian", "Czech", "Danish", "Dutch", "Estonian", "Filipino", 
-    "Finnish", "Galician", "Georgian", "German", "Greek", "Gujarati", "Hausa", 
-    "Hebrew", "Hungarian", "Icelandic", "Igbo", "Irish", "isiZulu", "Italian", 
-    "Japanese", "Javanese", "Kannada", "Kazakh", "Khmer", "Korean", "Lao", 
-    "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", 
-    "Marathi", "Mongolian", "Nepali", "Norwegian Bokmål", "Odia", "Pashto", 
-    "Persian", "Polish", "Punjabi", "Romanian", "Serbian", "Sinhala", "Slovak", 
-    "Slovenian", "Somali", "Swahili", "Swedish", "Tagalog", "Tamil", "Telugu", 
-    "Thai", "Turkish", "Ukrainian", "Urdu", "Uzbek", "Vietnamese", "Welsh", "Yoruba"
+  const targetLanguageOptions = [
+    { value: "pick a language", label: "Pick a language" },
+    ...targetLangAvailable.map(lang => ({
+      value: lang.toLowerCase(),
+      label: lang.charAt(0).toUpperCase() + lang.slice(1)
+    }))
   ];
 
 
+
+
+
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
-    from: 'Unknown',
-    to: 'Unknown'
+    from: 'English',
+    to: 'Pick a language'
   });
+
+  // Helper function to convert display name back to language code for dropdown
+  const getLanguageCodeFromDisplayName = (displayName: string): string => {
+    // Handle special cases
+    if (displayName === 'Unknown' || displayName === 'Pick a language') {
+      return 'en'; // Default to English
+    }
+    
+    for (const [code, lang] of Object.entries(languages as any)) {
+      const langDisplayName = Object.values((lang as any).source_language)[0] as string;
+      const formattedDisplayName = langDisplayName.charAt(0).toUpperCase() + langDisplayName.slice(1);
+      if (formattedDisplayName === displayName) {
+        return code;
+      }
+    }
+    return 'en'; // fallback to English if not found
+  };
 
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -93,18 +98,59 @@ export const TranslationTranscript: React.FC = () => {
     }
   }, [showSplash]);
 
-  const handleNoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setUserNote(value);
+  // Initialize target languages when languagePair.from changes
+  useEffect(() => {
+    if (languagePair.from && languagePair.from !== 'Unknown') {
+      const sourceCode = getLanguageCodeFromDisplayName(languagePair.from);
+      handleAvailableTargetLang(sourceCode);
+    }
+  }, [languagePair.from]);
+
+  // Initialize with English on component mount
+  useEffect(() => {
+    handleAvailableTargetLang('en'); // Set up English target options on load
+  }, []);
+
+  const handleAvailableTargetLang = (lang: string) => {
+    const langEntry = (languages as any)[lang];
+    if (!langEntry) return [];
+
+    const targets = langEntry.supported_target_languages.map(
+      (obj: any) => Object.values(obj)[0] as string
+    );
+    
+    setTargetLangAvailable(targets); // update state
+    return targets; // return fresh list
   };
 
-  const handleSourceLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSourceLang = e.target.value;
-    terminal.log('Source language changed to:', newSourceLang);
+  const handleSourceLanguageChange = async (selectedOption: any) => {
+    if (!selectedOption) return;
+    
+    handleAvailableTargetLang(selectedOption.value);
+    const newSourceLangCode = selectedOption.value;
+    
+    // Convert language code to display name for backend
+    const langEntry = (languages as any)[newSourceLangCode];
+    const newSourceLangDisplayName = langEntry ? 
+      Object.values(langEntry.source_language)[0] as string : 
+      newSourceLangCode;
+    
+    // Capitalize the first letter to match backend expectations
+    const formattedSourceLang = typeof newSourceLangDisplayName === 'string' ? 
+      newSourceLangDisplayName.charAt(0).toUpperCase() + newSourceLangDisplayName.slice(1) : 
+      newSourceLangCode;
+    
+    terminal.log('Source language changed to:', formattedSourceLang);
     
     try {
+      // Get available target languages and set to first available option
+      const availableTargets = handleAvailableTargetLang(newSourceLangCode);
+      const defaultTarget = availableTargets.length > 0 ? 
+        availableTargets[0].charAt(0).toUpperCase() + availableTargets[0].slice(1) : 
+        'Pick a language';
+      
       const updatedPair = await api.updateLanguageSettings(
-        { from: newSourceLang },
+        { from: formattedSourceLang, to: defaultTarget },
         getHeaders()
       );
       setLanguagePair(updatedPair);
@@ -113,13 +159,25 @@ export const TranslationTranscript: React.FC = () => {
     }
   };
 
-  const handleTargetLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTargetLang = e.target.value;
-    terminal.log('Target language changed to:', newTargetLang);
+  const handleTargetLanguageChange = async (selectedOption: any) => {
+    if (!selectedOption) return;
+    
+    const targetLangName = selectedOption.value;
+    
+    // Skip if user selected "Pick a language"
+    if (targetLangName === "pick a language") {
+      return;
+    }
+    
+    // Capitalize the first letter to match backend expectations
+    const formattedTargetLang = targetLangName.charAt(0).toUpperCase() + targetLangName.slice(1);
+
+    terminal.log('Target language changed to:', formattedTargetLang);
+    console.log("target lang changed to", formattedTargetLang);
     
     try {
       const updatedPair = await api.updateLanguageSettings(
-        { to: newTargetLang },
+        { to: formattedTargetLang },
         getHeaders()
       );
       setLanguagePair(updatedPair);
@@ -146,10 +204,10 @@ export const TranslationTranscript: React.FC = () => {
       })
       .catch(error => {
         console.error('Error fetching language settings:', error);
-        // Set default language pair if API fails
+        // Set default language pair if API fails - default to English
         setLanguagePair({
-          from: 'Unknown',
-          to: 'Unknown'
+          from: 'English',
+          to: 'Pick a language'
         });
       });
 
@@ -312,17 +370,40 @@ export const TranslationTranscript: React.FC = () => {
       </header>
 
       <div className=" flex flex-row pt-[10px] pb-[10px] border-b border-gray-200 justify-center items-center gap-3 pr-[15px] pl-[15px] ">
-        <select 
-          className="p-2 border rounded-md w-full h-[40px] border-gray-300 text-[13px] appearance-none"
-          value={languagePair.from}
+        <Select
+          options={sourceLanguageOptions}
+          value={sourceLanguageOptions.find(option => option.value === getLanguageCodeFromDisplayName(languagePair.from))}
           onChange={handleSourceLanguageChange}
-        >
-        {Object.entries(languages).map(([code, lang]) => (
-            <option key={code} value={code}>
-              {Object.values(lang.source_language)[0]} {/* e.g. "afrikaans" */}
-            </option>
-          ))}
-        </select>
+          isSearchable={true}
+          placeholder="Select source language..."
+          className="w-full text-[13px]"
+          styles={{
+            control: (base) => ({
+              ...base,
+              height: '40px',
+              minHeight: '40px',
+              border: '1px solid rgb(209 213 219)',
+              borderRadius: '6px',
+              fontSize: '13px'
+            }),
+            valueContainer: (base) => ({
+              ...base,
+              height: '40px',
+              padding: '0 8px'
+            }),
+            input: (base) => ({
+              ...base,
+              margin: '0px'
+            }),
+            indicatorSeparator: () => ({
+              display: 'none'
+            }),
+            indicatorsContainer: (base) => ({
+              ...base,
+              height: '40px'
+            })
+          }}
+        />
 
         <div className='flex flex-col w-[40px] h-[40px]  justify-center items-center rounded-full bg-[#303030] p-[12px] text-[white]'>
           <MoveRight size={40} className='' />
@@ -330,17 +411,40 @@ export const TranslationTranscript: React.FC = () => {
 
         </div>
 
-        <select 
-          className="p-2 border rounded-md w-full h-[40px] border-gray-300 text-[13px] appearance-none"
-          value={languagePair.to}
+        <Select
+          options={targetLanguageOptions}
+          value={targetLanguageOptions.find(option => option.value === languagePair.to.toLowerCase())}
           onChange={handleTargetLanguageChange}
-        >
-          {targetLanguages.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang}
-            </option>
-          ))}
-        </select>
+          isSearchable={true}
+          placeholder="Pick a language..."
+          className="w-full text-[13px]"
+          styles={{
+            control: (base) => ({
+              ...base,
+              height: '40px',
+              minHeight: '40px',
+              border: '1px solid rgb(209 213 219)',
+              borderRadius: '6px',
+              fontSize: '13px'
+            }),
+            valueContainer: (base) => ({
+              ...base,
+              height: '40px',
+              padding: '0 8px'
+            }),
+            input: (base) => ({
+              ...base,
+              margin: '0px'
+            }),
+            indicatorSeparator: () => ({
+              display: 'none'
+            }),
+            indicatorsContainer: (base) => ({
+              ...base,
+              height: '40px'
+            })
+          }}
+        />
       </div>
 
       <div className='border-b border-gray-200 p-4 flex items-center gap-2'>
@@ -363,8 +467,27 @@ export const TranslationTranscript: React.FC = () => {
         style={{ paddingBottom: '100px' }}
       >
         {entries.length === 0 ? (
-          <div className="text-center text-gray-400 py-10">
-            No translations yet. Start speaking to see translations appear here.
+          <div className="text-center text-gray-400 py-10 flex flex-col h-full justify-center items-center">
+            <motion.div 
+              className='flex justify-center items-center p-[15px] rounded-full mb-[10px]'
+              animate={{
+                scale: [1, 1.05, 1],
+                backgroundColor: ['#000000', '#4d4e50', '#000000']
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Mic color='white' size={40}/>
+            </motion.div>
+            <div className='flex flex-col text-[15px] font-bold'>
+              <span>Start speaking to see live translations</span>
+              <span>appear here. We're ready to translate</span>
+              <span>your conversation!</span>
+            </div>
+            
           </div>
         ) : (
           entries.map(entry => (
