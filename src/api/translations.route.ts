@@ -154,14 +154,22 @@ async function getLanguageSettings(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const conversationManager = app.getConversationManagerForUser(userId);
-  if (conversationManager) {
-    const languagePair = conversationManager.getLanguagePair();
-    console.log(`[API] Returning language pair: ${languagePair.from} -> ${languagePair.to}`);
-    res.json(languagePair);
+  // Get languages from session storage first
+  const storedLanguages = await app.getUserLanguagesFromStorage(userId);
+  if (storedLanguages) {
+    console.log(`[API] Returning stored language pair: ${storedLanguages.from} -> ${storedLanguages.to}`);
+    res.json(storedLanguages);
   } else {
-    console.log(`[API] No conversation manager found for user ${userId}`);
-    res.json({ from: 'Unknown', to: 'Unknown' });
+    // Fallback to conversation manager if no stored languages
+    const conversationManager = app.getConversationManagerForUser(userId);
+    if (conversationManager) {
+      const languagePair = conversationManager.getLanguagePair();
+      console.log(`[API] Returning language pair from conversation manager: ${languagePair.from} -> ${languagePair.to}`);
+      res.json(languagePair);
+    } else {
+      console.log(`[API] No conversation manager found for user ${userId}`);
+      res.json({ from: 'Unknown', to: 'Unknown' });
+    }
   }
 }
 
@@ -197,7 +205,7 @@ async function updateLanguageSettings(req: AuthRequest, res: Response) {
 
   // Update the languages in the app
   try {
-    const success = app.updateUserLanguages(userId, from, to);
+    const success = await app.updateUserLanguages(userId, from, to);
     if (success) {
       const conversationManager = app.getConversationManagerForUser(userId);
       const updatedLanguagePair = conversationManager?.getLanguagePair() || { from: from || 'Unknown', to: to || 'Unknown' };

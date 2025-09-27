@@ -39,8 +39,8 @@ export const TranslationTranscript: React.FC = () => {
 
 
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
-    from: 'English',
-    to: 'Pick a language'
+    from: 'Unknown', // Will be populated from simpleStorage
+    to: 'Unknown' // Will be populated from simpleStorage
   });
 
   // Helper function to convert display name back to language code for dropdown
@@ -106,10 +106,12 @@ export const TranslationTranscript: React.FC = () => {
     }
   }, [languagePair.from]);
 
-  // Initialize with English on component mount
+  // Initialize target languages only if no source language is set yet
   useEffect(() => {
-    handleAvailableTargetLang('en'); // Set up English target options on load
-  }, []);
+    if (languagePair.from === 'Unknown') {
+      handleAvailableTargetLang('en'); // Set up English target options as fallback
+    }
+  }, [languagePair.from]);
 
   const handleAvailableTargetLang = (lang: string) => {
     const langEntry = (languages as any)[lang];
@@ -177,7 +179,7 @@ export const TranslationTranscript: React.FC = () => {
     
     try {
       const updatedPair = await api.updateLanguageSettings(
-        { to: formattedTargetLang },
+        { from: languagePair.from, to: formattedTargetLang },
         getHeaders()
       );
       setLanguagePair(updatedPair);
@@ -194,20 +196,31 @@ export const TranslationTranscript: React.FC = () => {
     terminal.log('Connecting to backend translation events...');
     terminal.log('Auth state:', { isAuthenticated, hasToken: !!token, tokenPreview: token?.substring(0, 10) + '...' });
 
-    // Fetch language settings first
+    // Fetch language settings first from simpleStorage via the API
     api.getLanguageSettings(getHeaders())
       .then(data => {
+        console.log('🔍 API returned language pair from simpleStorage:', data);
+        console.log('🔍 Looking for source option with code:', getLanguageCodeFromDisplayName(data.from));
+        console.log('🔍 Available source options:', sourceLanguageOptions.slice(0, 5));
+
+        // Update language pair state with values from simpleStorage
         setLanguagePair({
           from: data.from,
           to: data.to
         });
+
+        // Initialize target languages for the selected source
+        if (data.from && data.from !== 'Unknown') {
+          const sourceCode = getLanguageCodeFromDisplayName(data.from);
+          handleAvailableTargetLang(sourceCode);
+        }
       })
       .catch(error => {
-        console.error('Error fetching language settings:', error);
-        // Set default language pair if API fails - default to English
+        console.error('Error fetching language settings from simpleStorage:', error);
+        // Set default language pair if API fails - match backend defaults
         setLanguagePair({
-          from: 'English',
-          to: 'Pick a language'
+          from: 'Chinese (Mandarin)',
+          to: 'English'
         });
       });
 

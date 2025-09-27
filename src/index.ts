@@ -107,7 +107,8 @@ export class LiveTranslationApp extends AppServer {
       }
     });
   }
-
+  
+  // 
   /**
    * Called by TpaServer when a new session is created
    */
@@ -122,7 +123,13 @@ export class LiveTranslationApp extends AppServer {
     
     // Store the active session for this user
     this.activeUserSessions.set(userId, { session, sessionId });
-    
+
+    // Check existing language settings from session storage (don't clear them)
+    console.log(`🔍 Checking existing session storage data for user ${userId}`);
+    const existingSourceLang = await session.simpleStorage.get("sourceLang");
+    const existingTargetLang = await session.simpleStorage.get("targetLang");
+    console.log(`📋 Found stored languages: ${existingSourceLang} -> ${existingTargetLang}`);
+
     // Initialize conversation manager for this user
     let conversationManager = this.userConversationManagers.get(userId);
     if (!conversationManager) {
@@ -147,13 +154,16 @@ export class LiveTranslationApp extends AppServer {
       );
       userTranscriptProcessors.set(userId, transcriptProcessor);
       
-      // Default source and target languages from config
-      const sourceLang = "English";
-      const targetLang = "Chinese (Hanzi)";
+      // Check stored languages first, then use defaults as fallback
+      const storedSourceLang = await session.simpleStorage.get("sourceLang");
+      const storedTargetLang = await session.simpleStorage.get("targetLang");
+
+      const sourceLang = (storedSourceLang && storedSourceLang !== "NONE") ? storedSourceLang : "English";
+      const targetLang = (storedTargetLang && storedTargetLang !== "NONE") ? storedTargetLang : "Chinese (Hanzi)";
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
 
-      console.log(`[Session ${sessionId}]: sourceLang=${sourceLang}, targetLang=${targetLang}`);
+      console.log(`[Session ${sessionId}] Error fallback: sourceLang=${sourceLang}, targetLang=${targetLang}`);
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, defaultSettings.displayMode);
@@ -227,9 +237,18 @@ export class LiveTranslationApp extends AppServer {
     userId: string
   ): Promise<void> {
     try {
-      // Extract settings - use stored languages or defaults
-      const sourceLang = userSourceLanguages.get(userId) || session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
-      const targetLang = userTargetLanguages.get(userId) || session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+      // Check simpleStorage first, then in-memory maps, then session settings, then defaults
+      const storedSourceLang = await session.simpleStorage.get("sourceLang");
+      const storedTargetLang = await session.simpleStorage.get("targetLang");
+
+      const sourceLang = (storedSourceLang && storedSourceLang !== "NONE") ? storedSourceLang :
+                        userSourceLanguages.get(userId) ||
+                        session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
+      const targetLang = (storedTargetLang && storedTargetLang !== "NONE") ? storedTargetLang :
+                        userTargetLanguages.get(userId) ||
+                        session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+
+      console.log(`[Settings] Retrieved languages - Stored: ${storedSourceLang} -> ${storedTargetLang}, Final: ${sourceLang} -> ${targetLang}`);
       const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
@@ -258,15 +277,20 @@ export class LiveTranslationApp extends AppServer {
       userDisplayModes.set(userId, displayMode);
       userConfidenceHeuristics.set(userId, confidenceHeuristicSetting);
       
+      // Store languages in session storage
+      await session.simpleStorage.set("sourceLang", sourceLang);
+      await session.simpleStorage.set("targetLang", targetLang);
+      console.log(`💾 Stored languages in session storage: ${sourceLang} → ${targetLang}`);
+
       // Update conversation manager language pair
       const conversationManager = this.userConversationManagers.get(userId);
       if (conversationManager) {
         conversationManager.setLanguagePair(sourceLang, targetLang);
-        
+
         // Broadcast language change to all connected webview clients
-        this.broadcastToUserSSEClients(userId, { 
-          type: 'languageChange', 
-          data: { from: sourceLang, to: targetLang } 
+        this.broadcastToUserSSEClients(userId, {
+          type: 'languageChange',
+          data: { from: sourceLang, to: targetLang }
         });
         console.log(`[SSE] Sent language change event to all clients for user ${userId}: ${sourceLang} → ${targetLang}`);
       }
@@ -682,30 +706,79 @@ export class LiveTranslationApp extends AppServer {
   /**
    * Update user languages and trigger settings reapplication
    */
-  public updateUserLanguages(userId: string, sourceLanguage?: string, targetLanguage?: string): boolean {
+  public async updateUserLanguages(userId: string, sourceLanguage?: string, targetLanguage?: string): Promise<boolean> {
     try {
-      // Update stored languages if provided
-      if (sourceLanguage) {
-        userSourceLanguages.set(userId, sourceLanguage);
-      }
-      if (targetLanguage) {
-        userTargetLanguages.set(userId, targetLanguage);
-      }
+      console.log(`🌐 Language update from webview for user ${userId}:`, {
+        sourceLanguage,
+        targetLanguage
+      });
 
-      // Get the active session for this user
+      // Get the active session for this user first
       const activeSession = this.activeUserSessions.get(userId);
       if (!activeSession) {
         console.log(`No active session found for user ${userId}`);
         return false;
       }
 
+      // Store in session storage
+      await activeSession.session.simpleStorage.set("sourceLang", sourceLanguage ?? "NONE");
+      await activeSession.session.simpleStorage.set("targetLang", targetLanguage ?? "NONE");
+
+      // Update stored languages if provided
+      if (sourceLanguage) {
+        console.log(`📤 Setting source language: ${sourceLanguage}`);
+        userSourceLanguages.set(userId, sourceLanguage);
+      }
+      if (targetLanguage) {
+        console.log(`📥 Setting target language: ${targetLanguage}`);
+        userTargetLanguages.set(userId, targetLanguage);
+      }
+
       // Reapply settings with the new languages
-      this.applySettings(activeSession.session, activeSession.sessionId, userId);
-      
+      await this.applySettings(activeSession.session, activeSession.sessionId, userId);
+
       return true;
     } catch (error) {
       console.error(`Error updating user languages for ${userId}:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Get user languages from session storage
+   */
+  public async getUserLanguagesFromStorage(userId: string): Promise<{ from: string; to: string } | null> {
+    try {
+      const activeSession = this.activeUserSessions.get(userId);
+      if (!activeSession) {
+        console.log(`No active session found for user ${userId}`);
+        return null;
+      }
+
+      const sourceLang = await activeSession.session.simpleStorage.get("sourceLang");
+      const targetLang = await activeSession.session.simpleStorage.get("targetLang");
+      
+
+      console.log(`📋 Retrieved from session storage for user ${userId}:`, {
+        sourceLang,
+        targetLang,
+        defaultSettings: {
+          transcribe: defaultSettings.transcribeLanguage,
+          translate: defaultSettings.translateLanguage
+        }
+      });
+
+      // Return stored values or fallback to defaults
+      const result = {
+        from: (sourceLang && sourceLang !== "NONE") ? sourceLang : defaultSettings.transcribeLanguage,
+        to: (targetLang && targetLang !== "NONE") ? targetLang : defaultSettings.translateLanguage
+      };
+
+      console.log(`📤 Returning language pair to frontend:`, result);
+      return result;
+    } catch (error) {
+      console.error(`Error getting user languages from storage for ${userId}:`, error);
+      return null;
     }
   }
 

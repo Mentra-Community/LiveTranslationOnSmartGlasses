@@ -25,6 +25,7 @@
     "@types/ws": "^8.18.0",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
+    "mongoose": "^8.18.2",
     "path": "^0.12.7",
     "pinyin-pro": "^3.26.0",
     "ws": "^8.18.1"
