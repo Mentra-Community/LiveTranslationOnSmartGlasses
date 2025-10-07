@@ -3,7 +3,7 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
-import { ArrowLeftRight, Languages, Mic, MoveRight, ScrollText } from 'lucide-react';
+import { Languages, Mic, MoveRight, ScrollText } from 'lucide-react';
 import { Switch } from '../components/ui/switch';
 import SplashScreen from './SplashScreen';
 import Select from "react-select";
