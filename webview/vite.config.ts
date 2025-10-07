@@ -20,8 +20,8 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'translation-app.ngrok.app', 'https://webview-11555-4a24a192-lcc2p59i.onporter.run'],
+    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'translation-app.ngrok.app', 'webview-11555-4a24a192-lcc2p59i.onporter.run'],
   },  preview: {
-    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', "https://webview-10410-4a24a192-ojqv695t.onporter.run", 'https://webview-11555-4a24a192-lcc2p59i.onporter.run'],
+    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'webview-10410-4a24a192-ojqv695t.onporter.run', 'webview-11555-4a24a192-lcc2p59i.onporter.run'],
   },
 })
