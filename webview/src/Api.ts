@@ -9,8 +9,8 @@ import { terminal } from 'virtual:terminal';
 const isProduction = window.location.hostname.includes('mentra.glass') || 
                     window.location.hostname.includes('onporter.run');
 
-const API_BASE_URL = isProduction 
-  ? 'https://translation-api.mentra.glass'
+const API_BASE_URL = isProduction
+  ? 'https://translation-aryan-api.mentra.glass'
   : (import.meta.env.VITE_API_URL || '');
 
 terminal.log('API_BASE_URL:', API_BASE_URL);
