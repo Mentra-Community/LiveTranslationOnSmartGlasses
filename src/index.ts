@@ -83,7 +83,7 @@ export class LiveTranslationApp extends AppServer {
       packageName: PACKAGE_NAME!,
       apiKey: AUGMENTOS_API_KEY!,
       port: PORT,
-      publicDir: path.join(__dirname, '../webview/dist'),
+      publicDir: path.join(__dirname, './public'),
     });
     
     // Enable CORS for the webview
