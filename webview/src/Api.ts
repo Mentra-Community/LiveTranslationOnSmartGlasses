@@ -10,6 +10,9 @@ const isProduction = window.location.hostname.includes('mentra.glass') ||
                     window.location.hostname.includes('onporter.run');
 
 // Allow override via environment variable
+terminal.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
+terminal.log('isProduction:', isProduction);
+
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
   (isProduction ? 'https://translation-aryan-api.mentra.glass' : '');
 
