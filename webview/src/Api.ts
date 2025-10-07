@@ -6,12 +6,12 @@ import { terminal } from 'virtual:terminal';
 
 // Use environment variable for API URL, fallback to relative URLs in production
 // Check window location to determine if we're in production
-const isProduction = window.location.hostname.includes('mentra.glass') || 
+const isProduction = window.location.hostname.includes('mentra.glass') ||
                     window.location.hostname.includes('onporter.run');
 
-const API_BASE_URL = isProduction
-  ? 'https://translation-aryan-api.mentra.glass'
-  : (import.meta.env.VITE_API_URL || '');
+// Allow override via environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (isProduction ? 'https://translation-aryan-api.mentra.glass' : '');
 
 terminal.log('API_BASE_URL:', API_BASE_URL);
 terminal.log('Is production?', isProduction);
