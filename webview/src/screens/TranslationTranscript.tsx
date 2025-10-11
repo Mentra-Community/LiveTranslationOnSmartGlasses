@@ -3,45 +3,35 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
-import { Languages, Mic, MoveRight, ScrollText } from 'lucide-react';
-import { Switch } from '../components/ui/switch';
-import SplashScreen from './SplashScreen';
-import Select from "react-select";
+import { ArrowLeftRight, ChevronUp, ChevronDown, Mic } from 'lucide-react';
 import languages from "../soniox/Languages.json"
 import { motion } from 'framer-motion';
+
 
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [isCheckingUserSession, setIsCheckingUserSession] = useState(false);
+  const [isUserIdAppSession, setIsUserIdAppSession] = useState(false);
   const [targetLangAvailable, setTargetLangAvailable] = useState<string[]>([]);
-  
-  // Prepare options for React Select dropdowns
-  const sourceLanguageOptions = Object.entries(languages).map(([code, lang]) => {
-    const displayName = (Object.values((lang as any).source_language)[0] as string).charAt(0).toUpperCase() + (Object.values((lang as any).source_language)[0] as string).slice(1);
-    return {
-      value: code,
-      label: displayName
-    };
-  });
-
-  const targetLanguageOptions = [
-    { value: "pick a language", label: "Pick a language" },
-    ...targetLangAvailable.map(lang => ({
-      value: lang.toLowerCase(),
-      label: lang.charAt(0).toUpperCase() + lang.slice(1)
-    }))
-  ];
-
-
-
-
-
+  const [isExpanded, setIsExpanded] = useState(false);
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
-    from: 'Unknown', // Will be populated from simpleStorage
-    to: 'Unknown' // Will be populated from simpleStorage
+    from: 'English',
+    to: 'Pick a language'
   });
+
+  // Create dropdown options from languages
+  const sourceLanguageOptions = Object.entries(languages as any).map(([code, lang]) => ({
+    value: code,
+    label: Object.values((lang as any).source_language)[0] as string
+  }));
+
+  const targetLanguageOptions = targetLangAvailable.map(lang => ({
+    value: lang.toLowerCase(),
+    label: lang.charAt(0).toUpperCase() + lang.slice(1)
+  }));
 
   // Helper function to convert display name back to language code for dropdown
   const getLanguageCodeFromDisplayName = (displayName: string): string => {
@@ -49,7 +39,7 @@ export const TranslationTranscript: React.FC = () => {
     if (displayName === 'Unknown' || displayName === 'Pick a language') {
       return 'en'; // Default to English
     }
-    
+
     for (const [code, lang] of Object.entries(languages as any)) {
       const langDisplayName = Object.values((lang as any).source_language)[0] as string;
       const formattedDisplayName = langDisplayName.charAt(0).toUpperCase() + langDisplayName.slice(1);
@@ -77,7 +67,7 @@ export const TranslationTranscript: React.FC = () => {
       // Show splash screen
       setShowSplash(true);
       localStorage.setItem('lastSplashTime', currentTime.toString());
-      
+
       // Hide splash after 3 seconds
       const timer = setTimeout(() => {
         setShowSplash(false);
@@ -106,12 +96,10 @@ export const TranslationTranscript: React.FC = () => {
     }
   }, [languagePair.from]);
 
-  // Initialize target languages only if no source language is set yet
+  // Initialize with English on component mount
   useEffect(() => {
-    if (languagePair.from === 'Unknown') {
-      handleAvailableTargetLang('en'); // Set up English target options as fallback
-    }
-  }, [languagePair.from]);
+    handleAvailableTargetLang('en'); // Set up English target options on load
+  }, []);
 
   const handleAvailableTargetLang = (lang: string) => {
     const langEntry = (languages as any)[lang];
@@ -120,37 +108,37 @@ export const TranslationTranscript: React.FC = () => {
     const targets = langEntry.supported_target_languages.map(
       (obj: any) => Object.values(obj)[0] as string
     );
-    
+
     setTargetLangAvailable(targets); // update state
     return targets; // return fresh list
   };
 
-  const handleSourceLanguageChange = async (selectedOption: any) => {
-    if (!selectedOption) return;
-    
-    handleAvailableTargetLang(selectedOption.value);
-    const newSourceLangCode = selectedOption.value;
-    
+  const handleSourceLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSourceLangCode = e.target.value;
+    if (!newSourceLangCode) return;
+
+    handleAvailableTargetLang(newSourceLangCode);
+
     // Convert language code to display name for backend
     const langEntry = (languages as any)[newSourceLangCode];
-    const newSourceLangDisplayName = langEntry ? 
-      Object.values(langEntry.source_language)[0] as string : 
+    const newSourceLangDisplayName = langEntry ?
+      Object.values(langEntry.source_language)[0] as string :
       newSourceLangCode;
-    
+
     // Capitalize the first letter to match backend expectations
-    const formattedSourceLang = typeof newSourceLangDisplayName === 'string' ? 
-      newSourceLangDisplayName.charAt(0).toUpperCase() + newSourceLangDisplayName.slice(1) : 
+    const formattedSourceLang = typeof newSourceLangDisplayName === 'string' ?
+      newSourceLangDisplayName.charAt(0).toUpperCase() + newSourceLangDisplayName.slice(1) :
       newSourceLangCode;
-    
+
     terminal.log('Source language changed to:', formattedSourceLang);
-    
+
     try {
       // Get available target languages and set to first available option
       const availableTargets = handleAvailableTargetLang(newSourceLangCode);
-      const defaultTarget = availableTargets.length > 0 ? 
-        availableTargets[0].charAt(0).toUpperCase() + availableTargets[0].slice(1) : 
+      const defaultTarget = availableTargets.length > 0 ?
+        availableTargets[0].charAt(0).toUpperCase() + availableTargets[0].slice(1) :
         'Pick a language';
-      
+
       const updatedPair = await api.updateLanguageSettings(
         { from: formattedSourceLang, to: defaultTarget },
         getHeaders()
@@ -161,30 +149,45 @@ export const TranslationTranscript: React.FC = () => {
     }
   };
 
-  const handleTargetLanguageChange = async (selectedOption: any) => {
-    if (!selectedOption) return;
-    
-    const targetLangName = selectedOption.value;
-    
+  const handleTargetLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const targetLangName = e.target.value;
+    if (!targetLangName) return;
+
     // Skip if user selected "Pick a language"
     if (targetLangName === "pick a language") {
       return;
     }
-    
+
     // Capitalize the first letter to match backend expectations
     const formattedTargetLang = targetLangName.charAt(0).toUpperCase() + targetLangName.slice(1);
 
     terminal.log('Target language changed to:', formattedTargetLang);
     console.log("target lang changed to", formattedTargetLang);
-    
+
     try {
       const updatedPair = await api.updateLanguageSettings(
-        { from: languagePair.from, to: formattedTargetLang },
+        { to: formattedTargetLang },
         getHeaders()
       );
       setLanguagePair(updatedPair);
     } catch (error) {
       terminal.error('Failed to update target language:', error);
+    }
+  };
+
+  const swapLanguages = async () => {
+    const temp = languagePair.from;
+    const newFrom = languagePair.to;
+    const newTo = temp;
+
+    try {
+      const updatedPair = await api.updateLanguageSettings(
+        { from: newFrom, to: newTo },
+        getHeaders()
+      );
+      setLanguagePair(updatedPair);
+    } catch (error) {
+      terminal.error('Failed to swap languages:', error);
     }
   };
 
@@ -195,32 +198,46 @@ export const TranslationTranscript: React.FC = () => {
 
     terminal.log('Connecting to backend translation events...');
     terminal.log('Auth state:', { isAuthenticated, hasToken: !!token, tokenPreview: token?.substring(0, 10) + '...' });
+    terminal.log('Current user token (full):', token);
+    const userId = token?.split(':')[0];
+    terminal.log('User email/ID from token:', userId);
 
-    // Fetch language settings first from simpleStorage via the API
+    // Check if this userId has an active app session on TPA server (in memory)
+    setIsCheckingUserSession(true);
+
+    // Check if the API method exists before calling it
+    if ('getUserAppActive' in api && typeof api.getUserAppActive === 'function') {
+      (api as any).getUserAppActive(userId || 'unknown-user')
+        .then((userActivity: any) => {
+          terminal.log(`userId: ${userId} app session is ${userActivity.active ? "online" : "offline"}`);
+          setIsUserIdAppSession(userActivity.active);
+          setIsCheckingUserSession(false);
+        })
+        .catch((error: any) => {
+          terminal.error('Error fetching user activity:', error);
+          setIsUserIdAppSession(false);
+          setIsCheckingUserSession(false);
+        });
+    } else {
+      // If method doesn't exist, just mark as done
+      terminal.log('getUserAppActive not available, skipping session check');
+      setIsCheckingUserSession(false);
+    }
+
+    // Fetch language settings first
     api.getLanguageSettings(getHeaders())
       .then(data => {
-        console.log('🔍 API returned language pair from simpleStorage:', data);
-        console.log('🔍 Looking for source option with code:', getLanguageCodeFromDisplayName(data.from));
-        console.log('🔍 Available source options:', sourceLanguageOptions.slice(0, 5));
-
-        // Update language pair state with values from simpleStorage
         setLanguagePair({
           from: data.from,
           to: data.to
         });
-
-        // Initialize target languages for the selected source
-        if (data.from && data.from !== 'Unknown') {
-          const sourceCode = getLanguageCodeFromDisplayName(data.from);
-          handleAvailableTargetLang(sourceCode);
-        }
       })
       .catch(error => {
-        console.error('Error fetching language settings from simpleStorage:', error);
-        // Set default language pair if API fails - match backend defaults
+        console.error('Error fetching language settings:', error);
+        // Set default language pair if API fails - default to English
         setLanguagePair({
-          from: 'Chinese (Mandarin)',
-          to: 'English'
+          from: 'English',
+          to: 'Pick a language'
         });
       });
 
@@ -320,10 +337,13 @@ export const TranslationTranscript: React.FC = () => {
     };
   }, [isLoading, getHeaders, getAuthQuery, isAuthenticated, token]); // Dependencies for API calls
 
-  // Handle autoscroll
+  // Handle autoscroll - scroll to bottom when new entries arrive or autoscroll is enabled
   useEffect(() => {
     if (autoscrollEnabled && transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+      transcriptRef.current.scrollTo({
+        top: transcriptRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [entries, autoscrollEnabled]);
 
@@ -332,13 +352,14 @@ export const TranslationTranscript: React.FC = () => {
     if (!transcriptRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = transcriptRef.current;
-    const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 20;
+    const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
 
     // Only change state if needed (avoid unnecessary renders)
     if (autoscrollEnabled && !isScrolledToBottom) {
+      // User scrolled up, disable autoscroll
       setAutoscrollEnabled(false);
     } else if (!autoscrollEnabled && isScrolledToBottom) {
-      // Re-enable autoscroll when user scrolls back to bottom
+      // User scrolled back to bottom, re-enable autoscroll
       setAutoscrollEnabled(true);
     }
   };
@@ -346,9 +367,9 @@ export const TranslationTranscript: React.FC = () => {
   // Show loading state while authentication is loading
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
-          <p className="text-gray-600">Loading authentication...</p>
+          <p className="text-gray-400">Loading authentication...</p>
         </div>
       </div>
     );
@@ -357,191 +378,238 @@ export const TranslationTranscript: React.FC = () => {
   // Show authentication status if not authenticated in production
   if (!isAuthenticated && process.env.NODE_ENV === 'production') {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
-          <p className="text-gray-600">Please open this page from the MentraOS app.</p>
+          <p className="text-gray-400">Please open this page from the MentraOS app.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking user session
+  if (isCheckingUserSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Checking connection...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen w-full mx-auto bg-gray-50">
-      {!showSplash ? 
-            <>
-       <header className="flex flex-row  border-b border-gray-200 p-4 w-full  bg-[#202020]  justify-center items-center ">
-          <h1 className='text-white font-bold text-xl flex items-center gap-2 flex-1'>
-            <Languages className="w-6 h-6" />
-            Translation
-          </h1>
-          <div className="status-indicator">
-            <div className="text-xs text-white mt-1">
-              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-[#ffffff]' : 'bg-gray-300'}`}></span>
-              {listening ? 'Listening...' : 'Not connected'}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col">
+      <style>{`
+        @keyframes wave {
+          0%, 100% { height: 12px; }
+          50% { height: 32px; }
+        }
+        .bar-1 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0s; }
+        .bar-2 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.1s; }
+        .bar-3 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.2s; }
+        .bar-4 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.3s; }
+        .bar-5 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.4s; }
+      `}</style>
+
+      {/* Sticky Header at Top */}
+      <div className="sticky top-0 z-50 mb-6">
+        <div className="max-w-sm mx-auto">
+          <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-lg overflow-hidden transition-all">
+          {/* Always Visible Row */}
+          <div className="flex items-center justify-between p-4">
+            {/* Left: Animation */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 h-8">
+                <div className="w-0.5 bg-blue-500 rounded-sm bar-1"></div>
+                <div className="w-0.5 bg-blue-500 rounded-sm bar-2"></div>
+                <div className="w-0.5 bg-blue-500 rounded-sm bar-3"></div>
+                <div className="w-0.5 bg-blue-500 rounded-sm bar-4"></div>
+                <div className="w-0.5 bg-blue-500 rounded-sm bar-5"></div>
+              </div>
+              <span className={`text-xs font-medium ${listening ? 'text-green-400' : 'text-blue-400'}`}>
+                {listening ? 'Listening' : 'Ready'}
+              </span>
+            </div>
+
+            {/* Center: Language Indicators (Compact) with color coding */}
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+              <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
+                {languagePair.from.slice(0, 2).toUpperCase()}
+              </span>
+              <ArrowLeftRight className="w-3 h-3 text-slate-500" />
+              <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
+                {languagePair.to.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+
+            {/* Right: Auto-scroll Toggle (Compact) + Expand Button */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setAutoscrollEnabled(!autoscrollEnabled)}
+                className={`relative w-10 h-5 rounded-full transition-all ${
+                  autoscrollEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-slate-700'
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                    autoscrollEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1 hover:bg-slate-700/50 rounded transition-all"
+              >
+                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
             </div>
           </div>
-      </header>
 
-      <div className=" flex flex-row pt-[10px] pb-[10px] border-b border-gray-200 justify-center items-center gap-3 pr-[15px] pl-[15px] ">
-        <Select
-          options={sourceLanguageOptions}
-          value={sourceLanguageOptions.find(option => option.value === getLanguageCodeFromDisplayName(languagePair.from))}
-          onChange={handleSourceLanguageChange}
-          isSearchable={true}
-          placeholder="Select source language..."
-          className="w-full text-[13px]"
-          styles={{
-            control: (base) => ({
-              ...base,
-              height: '40px',
-              minHeight: '40px',
-              border: '1px solid rgb(209 213 219)',
-              borderRadius: '6px',
-              fontSize: '13px'
-            }),
-            valueContainer: (base) => ({
-              ...base,
-              height: '40px',
-              padding: '0 8px'
-            }),
-            input: (base) => ({
-              ...base,
-              margin: '0px'
-            }),
-            indicatorSeparator: () => ({
-              display: 'none'
-            }),
-            indicatorsContainer: (base) => ({
-              ...base,
-              height: '40px'
-            })
-          }}
-        />
-
-        <div className='flex flex-col w-[40px] h-[40px]  justify-center items-center rounded-full bg-[#303030] p-[12px] text-[white]'>
-          <MoveRight size={40} className='' />
-          <p className=' absolute text-[5px] mt-[-3px] font-bold mb-[-20px]'> TO</p>
-
-        </div>
-
-        <Select
-          options={targetLanguageOptions}
-          value={targetLanguageOptions.find(option => option.value === languagePair.to.toLowerCase())}
-          onChange={handleTargetLanguageChange}
-          isSearchable={true}
-          placeholder="Pick a language..."
-          className="w-full text-[13px]"
-          styles={{
-            control: (base) => ({
-              ...base,
-              height: '40px',
-              minHeight: '40px',
-              border: '1px solid rgb(209 213 219)',
-              borderRadius: '6px',
-              fontSize: '13px'
-            }),
-            valueContainer: (base) => ({
-              ...base,
-              height: '40px',
-              padding: '0 8px'
-            }),
-            input: (base) => ({
-              ...base,
-              margin: '0px'
-            }),
-            indicatorSeparator: () => ({
-              display: 'none'
-            }),
-            indicatorsContainer: (base) => ({
-              ...base,
-              height: '40px'
-            })
-          }}
-        />
-      </div>
-
-      <div className='border-b border-gray-200 p-4 flex items-center gap-2'>
-        <ScrollText color='#374151' />
-        <p color='#374151' className='flex-1'>Auto-scroll</p>
-        <Switch 
-          checked={autoscrollEnabled} 
-          onCheckedChange={setAutoscrollEnabled}
-          className="data-[state=checked]:bg-[#303030]"
-        />
-      </div>
-      
-
-
-
-      <div
-        className="bg-white flex-1 overflow-y-auto gap-[10px] flex flex-col p-4"
-        ref={transcriptRef}
-        onScroll={handleScroll}
-        style={{ paddingBottom: '100px' }}
-      >
-        {entries.length === 0 ? (
-          <div className="text-center text-gray-400 py-10 flex flex-col h-full justify-center items-center">
-            <motion.div 
-              className='flex justify-center items-center p-[15px] rounded-full mb-[10px]'
-              animate={{
-                scale: [1, 1.05, 1],
-                backgroundColor: ['#000000', '#4d4e50', '#000000']
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <Mic color='white' size={40}/>
-            </motion.div>
-            <div className='flex flex-col text-[15px] font-bold'>
-              <span>Start speaking to see live translations</span>
-              <span>appear here. We're ready to translate</span>
-              <span>your conversation!</span>
-            </div>
-            
-          </div>
-        ) : (
-          entries.map(entry => (
-            <div className='bg-[#8b8b8b] rounded-[20px] shadow-md'>
-              <div key={entry.id} className={` pb-4 rounded-[20px] ml-[5px]  ${
-                // Use different shades based on translation direction
-                // Compare just the first few characters to handle variations
-                entry.originalLanguage === languagePair.from || 
-                entry.originalLanguage.toLowerCase() === languagePair.from.toLowerCase() ? 
-                  'bg-white' : 'bg-gray-100'
-              } p-4`}>
-                <div className="text-sm font-medium text-white mb-2 flex items-center">
-                  <span className="bg-gray-400 px-2 py-0.5 rounded">
-                    {entry.originalLanguage} → {entry.translatedLanguage}
-                  </span>
+          {/* Expandable Section */}
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="px-4 pb-4 pt-2 space-y-4 border-t border-slate-700/50">
+              {/* Full Language Selector with labels */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-xs text-blue-400 font-medium mb-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                    Source
+                  </label>
+                  <select
+                    value={getLanguageCodeFromDisplayName(languagePair.from)}
+                    onChange={handleSourceLanguageChange}
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-800"
+                  >
+                    {sourceLanguageOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="text-sm text-gray-600 mb-1.5">
-                  {entry.originalText}
-                </div>
-                <div className="text-lg text-gray-900 font-medium">
-                  {entry.translatedText}
-                </div>
-                <div className="text-xs text-gray-400 mt-2 text-right">
-                  {new Date(entry.timestamp).toLocaleTimeString()}
+
+                <button
+                  onClick={swapLanguages}
+                  className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all transform active:scale-95 mt-5"
+                  title="Swap languages"
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                </button>
+
+                <div className="flex-1">
+                  <label className="text-xs text-purple-400 font-medium mb-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                    Target
+                  </label>
+                  <select
+                    value={languagePair.to.toLowerCase()}
+                    onChange={handleTargetLanguageChange}
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer hover:bg-slate-800"
+                  >
+                    <option value="pick a language">Pick a language</option>
+                    {targetLanguageOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              {/* Auto-scroll Label */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span className="text-sm font-medium">Auto-scroll</span>
+                </div>
+                <span className="text-xs text-slate-500">{autoscrollEnabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
             </div>
-            
-          ))
-        )}
+          </div>
+          </div>
+        </div>
       </div>
 
-      {/* <div className="fixed bottom-0 left-0 right-0 bg-gray-100 py-2.5 px-4 text-sm text-gray-500 border-t border-gray-200 text-center">
-        <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${listening ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-        {listening ? 'Listening...' : 'Not connected'}
-      </div> */}
-      </>
-      
-      : <SplashScreen/>}
+      {/* Translation Display */}
+      <div className="max-w-sm mx-auto flex-1 w-full ">
+        <div
+          ref={transcriptRef}
+          onScroll={handleScroll}
+          className="space-y-4 overflow-y-auto pr-2"
+          style={{
+            maxHeight: 'calc(100vh - 2px)',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#475569 transparent'
+          }}
+        >
+          {entries.length === 0 ? (
+            <div className="text-center text-slate-400 flex flex-col items-center justify-center h-full min-h-[60vh]">
+              <motion.div
+                className='flex justify-center items-center p-4 rounded-full mb-4 bg-slate-800/50'
+                animate={{
+                  scale: [1, 1.05, 1],
+                  backgroundColor: ['rgba(30, 41, 59, 0.5)', 'rgba(51, 65, 85, 0.5)', 'rgba(30, 41, 59, 0.5)']
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <Mic color='white' size={32}/>
+              </motion.div>
+              <div className='flex flex-col items-center text-center text-sm font-medium space-y-1'>
+                <span>Start speaking to see live translations</span>
+                <span className="text-slate-500">We're ready to translate your conversation!</span>
+              </div>
+            </div>
+          ) : (
+            entries.map(entry => {
+              // Determine if this is source → target or target → source
+              const isSourceToTarget = entry.originalLanguage.toLowerCase() === languagePair.from.toLowerCase() ||
+                                      entry.originalLanguage.toLowerCase().startsWith(languagePair.from.toLowerCase().slice(0, 2));
 
-     
+              return (
+                <div
+                  key={entry.id}
+                  className={`rounded-lg p-4 backdrop-blur-sm transition-all ${
+                    isSourceToTarget
+                      ? 'bg-blue-900/20 border border-blue-700/30 hover:bg-blue-900/30'
+                      : 'bg-purple-900/20 border border-purple-700/30 hover:bg-purple-900/30'
+                  }`}
+                >
+                  <div className="text-xs font-medium text-slate-400 mb-2 flex items-center justify-between">
+                    <span className={`px-2 py-1 rounded ${
+                      isSourceToTarget
+                        ? 'bg-blue-700/30'
+                        : 'bg-purple-700/30'
+                    }`}>
+                      {entry.originalLanguage} → {entry.translatedLanguage}
+                    </span>
+                    <span className="text-slate-500">
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-300 mb-2">
+                    {entry.originalText}
+                  </div>
+                  <div className="text-base text-white font-medium">
+                    {entry.translatedText}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 };
