@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
@@ -17,9 +18,7 @@ export const TranslationTranscript: React.FC = () => {
   const [showSplash, setShowSplash] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isCheckingUserSession, setIsCheckingUserSession] = useState(false);
-  const [isUserIdAppSession, setIsUserIdAppSession] = useState(false);
   const [targetLangAvailable, setTargetLangAvailable] = useState<string[]>([]);
-  const [isExpanded, setIsExpanded] = useState(true);
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
     from: 'English',
@@ -61,11 +60,7 @@ export const TranslationTranscript: React.FC = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
 
-  // Helper function to capitalize first letter for display only
-  const capitalizeForDisplay = (text: string): string => {
-    if (!text) return text;
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  };
+
 
   // Custom styles for React Select to match app theme
   const customSelectStyles = {
@@ -303,12 +298,10 @@ export const TranslationTranscript: React.FC = () => {
       (api as any).getUserAppActive(userId || 'unknown-user')
         .then((userActivity: any) => {
           terminal.log(`userId: ${userId} app session is ${userActivity.active ? "online" : "offline"}`);
-          setIsUserIdAppSession(userActivity.active);
           setIsCheckingUserSession(false);
         })
         .catch((error: any) => {
           terminal.error('Error fetching user activity:', error);
-          setIsUserIdAppSession(false);
           setIsCheckingUserSession(false);
         });
     } else {
@@ -571,9 +564,7 @@ export const TranslationTranscript: React.FC = () => {
 
           {/* Expandable Section */}
           <div
-            className={`transition-all duration-300 ease-in-out ${
-              isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
-            }`}
+            className={`transition-all duration-300 ease-in-out`}
           >
             <div className="px-4 pb-4 pt-2 space-y-4 border-t border-slate-700/50">
               {/* Full Language Selector with labels */}
