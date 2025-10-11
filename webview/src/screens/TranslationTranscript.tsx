@@ -3,9 +3,10 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
-import { ArrowLeftRight, ChevronUp, ChevronDown, Mic } from 'lucide-react';
+import { ArrowLeftRight, ChevronUp, ChevronDown, Mic, ArrowDown } from 'lucide-react';
 import languages from "../soniox/Languages.json"
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import SplashScreen from './SplashScreen';
 
 
 export const TranslationTranscript: React.FC = () => {
@@ -13,10 +14,12 @@ export const TranslationTranscript: React.FC = () => {
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isCheckingUserSession, setIsCheckingUserSession] = useState(false);
   const [isUserIdAppSession, setIsUserIdAppSession] = useState(false);
   const [targetLangAvailable, setTargetLangAvailable] = useState<string[]>([]);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
     from: 'English',
     to: 'Pick a language'
@@ -54,10 +57,9 @@ export const TranslationTranscript: React.FC = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
 
-  // Check if splash should be shown based on 10-minute timer
+  // Check if splash should be shown based on 10-second timer
   useEffect(() => {
-    const SPLASH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
-    // const SPLASH_INTERVAL = 20000; // 10 minutes in milliseconds
+    const SPLASH_INTERVAL = 10 * 1000; // 10 seconds in milliseconds
 
     const SPLASH_DURATION = 3000; // 3 seconds
     const lastSplashTime = localStorage.getItem('lastSplashTime');
@@ -82,6 +84,7 @@ export const TranslationTranscript: React.FC = () => {
     if (showSplash) {
       const timer = setTimeout(() => {
         setShowSplash(false);
+        setIsFirstLoad(false); // Mark that first load is complete
       }, 3000);
 
       return () => clearTimeout(timer);
@@ -117,6 +120,7 @@ export const TranslationTranscript: React.FC = () => {
     const newSourceLangCode = e.target.value;
     if (!newSourceLangCode) return;
 
+    setIsLanguageLoading(true);
     handleAvailableTargetLang(newSourceLangCode);
 
     // Convert language code to display name for backend
@@ -146,6 +150,8 @@ export const TranslationTranscript: React.FC = () => {
       setLanguagePair(updatedPair);
     } catch (error) {
       terminal.error('Failed to update source language:', error);
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -157,6 +163,8 @@ export const TranslationTranscript: React.FC = () => {
     if (targetLangName === "pick a language") {
       return;
     }
+
+    setIsLanguageLoading(true);
 
     // Capitalize the first letter to match backend expectations
     const formattedTargetLang = targetLangName.charAt(0).toUpperCase() + targetLangName.slice(1);
@@ -172,6 +180,8 @@ export const TranslationTranscript: React.FC = () => {
       setLanguagePair(updatedPair);
     } catch (error) {
       terminal.error('Failed to update target language:', error);
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -179,6 +189,8 @@ export const TranslationTranscript: React.FC = () => {
     const temp = languagePair.from;
     const newFrom = languagePair.to;
     const newTo = temp;
+
+    setIsLanguageLoading(true);
 
     try {
       const updatedPair = await api.updateLanguageSettings(
@@ -188,6 +200,8 @@ export const TranslationTranscript: React.FC = () => {
       setLanguagePair(updatedPair);
     } catch (error) {
       terminal.error('Failed to swap languages:', error);
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -399,11 +413,26 @@ export const TranslationTranscript: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col overflow-hidden">
+      {/* Splash Screen Overlay */}
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+            initial={{ opacity: isFirstLoad ? 1 : 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+          >
+            <SplashScreen />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
         @keyframes wave {
-          0%, 100% { height: 12px; }
-          50% { height: 32px; }
+          0%, 100% { height: 8px; }
+          50% { height: 20px; }
         }
         .bar-1 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0s; }
         .bar-2 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.1s; }
@@ -413,7 +442,7 @@ export const TranslationTranscript: React.FC = () => {
       `}</style>
 
       {/* Sticky Header at Top */}
-      <div className="sticky top-0 z-50 mb-6">
+      <div className="sticky z-50 mb-6">
         <div className="max-w-sm mx-auto">
           <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-lg overflow-hidden transition-all">
           {/* Always Visible Row */}
@@ -427,19 +456,8 @@ export const TranslationTranscript: React.FC = () => {
                 <div className="w-0.5 bg-blue-500 rounded-sm bar-4"></div>
                 <div className="w-0.5 bg-blue-500 rounded-sm bar-5"></div>
               </div>
-              <span className={`text-xs font-medium ${listening ? 'text-green-400' : 'text-blue-400'}`}>
+              <span className={`text-xs font-medium ${listening ? 'text-[#00d4ff]' : 'text-blue-400'}`}>
                 {listening ? 'Listening' : 'Ready'}
-              </span>
-            </div>
-
-            {/* Center: Language Indicators (Compact) with color coding */}
-            <div className="flex items-center gap-1.5 text-xs font-medium">
-              <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
-                {languagePair.from.slice(0, 2).toUpperCase()}
-              </span>
-              <ArrowLeftRight className="w-3 h-3 text-slate-500" />
-              <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
-                {languagePair.to.slice(0, 2).toUpperCase()}
               </span>
             </div>
 
@@ -450,20 +468,25 @@ export const TranslationTranscript: React.FC = () => {
                 className={`relative w-10 h-5 rounded-full transition-all ${
                   autoscrollEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-slate-700'
                 }`}
+                title={autoscrollEnabled ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
               >
                 <div
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center transition-transform ${
                     autoscrollEnabled ? 'translate-x-5' : 'translate-x-0'
                   }`}
-                />
+                >
+                  <ArrowDown className={`w-2.5 h-2.5 transition-colors ${
+                    autoscrollEnabled ? 'text-purple-600' : 'text-slate-400'
+                  }`} />
+                </div>
               </button>
 
-              <button
+              {/* <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-1 hover:bg-slate-700/50 rounded transition-all"
               >
                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -484,11 +507,12 @@ export const TranslationTranscript: React.FC = () => {
                   <select
                     value={getLanguageCodeFromDisplayName(languagePair.from)}
                     onChange={handleSourceLanguageChange}
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-800"
+                    disabled={isLanguageLoading}
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sourceLanguageOptions.map(option => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {option.label.charAt(0).toUpperCase() + option.label.slice(1)}
                       </option>
                     ))}
                   </select>
@@ -496,7 +520,8 @@ export const TranslationTranscript: React.FC = () => {
 
                 <button
                   onClick={swapLanguages}
-                  className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all transform active:scale-95 mt-5"
+                  disabled={isLanguageLoading}
+                  className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all transform active:scale-95 mt-5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                   title="Swap languages"
                 >
                   <ArrowLeftRight className="w-4 h-4" />
@@ -510,7 +535,8 @@ export const TranslationTranscript: React.FC = () => {
                   <select
                     value={languagePair.to.toLowerCase()}
                     onChange={handleTargetLanguageChange}
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer hover:bg-slate-800"
+                    disabled={isLanguageLoading}
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="pick a language">Pick a language</option>
                     {targetLanguageOptions.map(option => (
@@ -522,16 +548,7 @@ export const TranslationTranscript: React.FC = () => {
                 </div>
               </div>
 
-              {/* Auto-scroll Label */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span className="text-sm font-medium">Auto-scroll</span>
-                </div>
-                <span className="text-xs text-slate-500">{autoscrollEnabled ? 'Enabled' : 'Disabled'}</span>
-              </div>
+
             </div>
           </div>
           </div>
@@ -539,15 +556,14 @@ export const TranslationTranscript: React.FC = () => {
       </div>
 
       {/* Translation Display */}
-      <div className="max-w-sm mx-auto flex-1 w-full ">
         <div
           ref={transcriptRef}
           onScroll={handleScroll}
-          className="space-y-4 overflow-y-auto pr-2"
+          className="space-y-4 overflow-y-auto pr-2 bg-amber-200"
           style={{
-            maxHeight: 'calc(100vh - 2px)',
             scrollbarWidth: 'thin',
-            scrollbarColor: '#475569 transparent'
+            scrollbarColor: '#475569 transparent',
+            maxHeight: 'calc(100vh - 200px)'
           }}
         >
           {entries.length === 0 ? (
@@ -609,7 +625,6 @@ export const TranslationTranscript: React.FC = () => {
             })
           )}
         </div>
-      </div>
     </div>
   );
 };
