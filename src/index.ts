@@ -854,7 +854,7 @@ const liveTranslationApp = new LiveTranslationApp();
 
 // Set up API routes
 const expressApp = liveTranslationApp.getExpressApp();
-setupAPI(expressApp, liveTranslationApp);
+setupAPI(expressApp as any, liveTranslationApp);
 
 // Start the server
 liveTranslationApp.start().then(() => {
