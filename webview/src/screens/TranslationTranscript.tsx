@@ -3,10 +3,11 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
-import { ArrowLeftRight, ChevronUp, ChevronDown, Mic, ArrowDown } from 'lucide-react';
+import { ArrowLeftRight, Mic, ArrowDown } from 'lucide-react';
 import languages from "../soniox/Languages.json"
 import { motion, AnimatePresence } from 'framer-motion';
 import SplashScreen from './SplashScreen';
+import Select from 'react-select';
 
 
 export const TranslationTranscript: React.FC = () => {
@@ -26,10 +27,13 @@ export const TranslationTranscript: React.FC = () => {
   });
 
   // Create dropdown options from languages
-  const sourceLanguageOptions = Object.entries(languages as any).map(([code, lang]) => ({
-    value: code,
-    label: Object.values((lang as any).source_language)[0] as string
-  }));
+  const sourceLanguageOptions = Object.entries(languages as any).map(([code, lang]) => {
+    const langName = Object.values((lang as any).source_language)[0] as string;
+    return {
+      value: code,
+      label: langName.charAt(0).toUpperCase() + langName.slice(1)
+    };
+  });
 
   const targetLanguageOptions = targetLangAvailable.map(lang => ({
     value: lang.toLowerCase(),
@@ -56,6 +60,81 @@ export const TranslationTranscript: React.FC = () => {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
+
+  // Helper function to capitalize first letter for display only
+  const capitalizeForDisplay = (text: string): string => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
+  // Custom styles for React Select to match app theme
+  const customSelectStyles = {
+    control: (base: Record<string, unknown>, state: { isFocused: boolean }) => ({
+      ...base,
+      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+      borderColor: state.isFocused ? '#3b82f6' : '#334155',
+      borderRadius: '0.5rem',
+      padding: '0.125rem',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+      cursor: 'pointer',
+      '&:hover': {
+        backgroundColor: 'rgba(30, 41, 59, 1)',
+        borderColor: state.isFocused ? '#3b82f6' : '#475569',
+      },
+    }),
+    menu: (base: Record<string, unknown>) => ({
+      ...base,
+      backgroundColor: 'rgba(30, 41, 59, 0.95)',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid #334155',
+      borderRadius: '0.5rem',
+      overflow: 'hidden',
+      zIndex: 9999,
+    }),
+    menuPortal: (base: Record<string, unknown>) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+    option: (base: Record<string, unknown>, state: { isSelected: boolean; isFocused: boolean }) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? 'rgba(59, 130, 246, 0.3)'
+        : state.isFocused
+        ? 'rgba(59, 130, 246, 0.1)'
+        : 'transparent',
+      color: '#e2e8f0',
+      cursor: 'pointer',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      '&:active': {
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      },
+    }),
+    singleValue: (base: Record<string, unknown>) => ({
+      ...base,
+      color: '#e2e8f0',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+    }),
+    input: (base: Record<string, unknown>) => ({
+      ...base,
+      color: '#e2e8f0',
+    }),
+    placeholder: (base: Record<string, unknown>) => ({
+      ...base,
+      color: '#94a3b8',
+    }),
+    dropdownIndicator: (base: Record<string, unknown>) => ({
+      ...base,
+      color: '#94a3b8',
+      '&:hover': {
+        color: '#cbd5e1',
+      },
+    }),
+    indicatorSeparator: () => ({
+      display: 'none',
+    }),
+  };
 
   // Check if splash should be shown based on 10-second timer
   useEffect(() => {
@@ -492,8 +571,8 @@ export const TranslationTranscript: React.FC = () => {
 
           {/* Expandable Section */}
           <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            className={`transition-all duration-300 ease-in-out ${
+              isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
             }`}
           >
             <div className="px-4 pb-4 pt-2 space-y-4 border-t border-slate-700/50">
@@ -504,18 +583,25 @@ export const TranslationTranscript: React.FC = () => {
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                     Source
                   </label>
-                  <select
-                    value={getLanguageCodeFromDisplayName(languagePair.from)}
-                    onChange={handleSourceLanguageChange}
-                    disabled={isLanguageLoading}
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sourceLanguageOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label.charAt(0).toUpperCase() + option.label.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={sourceLanguageOptions.find(opt => opt.value === getLanguageCodeFromDisplayName(languagePair.from))}
+                    onChange={(option) => {
+                      if (option) {
+                        const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
+                        handleSourceLanguageChange(event);
+                      }
+                    }}
+                    
+                    options={sourceLanguageOptions}
+                    isDisabled={isLanguageLoading}
+                    isSearchable={true}
+                    placeholder="Search languages..."
+                    styles={customSelectStyles}
+                    className="react-select-container"
+                    classNamePrefix="react-select capitalize"
+                    menuPosition="fixed"
+                    menuPortalTarget={document.body}
+                  />
                 </div>
 
                 <button
@@ -532,19 +618,24 @@ export const TranslationTranscript: React.FC = () => {
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                     Target
                   </label>
-                  <select
-                    value={languagePair.to.toLowerCase()}
-                    onChange={handleTargetLanguageChange}
-                    disabled={isLanguageLoading}
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="pick a language">Pick a language</option>
-                    {targetLanguageOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={targetLanguageOptions.find(opt => opt.value === languagePair.to.toLowerCase()) || null}
+                    onChange={(option) => {
+                      if (option) {
+                        const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
+                        handleTargetLanguageChange(event);
+                      }
+                    }}
+                    options={targetLanguageOptions}
+                    isDisabled={isLanguageLoading}
+                    isSearchable={true}
+                    placeholder="Search..."
+                    styles={customSelectStyles}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    menuPosition="fixed"
+                    menuPortalTarget={document.body}
+                  />
                 </div>
               </div>
 
@@ -559,7 +650,7 @@ export const TranslationTranscript: React.FC = () => {
         <div
           ref={transcriptRef}
           onScroll={handleScroll}
-          className="space-y-4 overflow-y-auto pr-2 bg-amber-200"
+          className="space-y-4 overflow-y-auto pr-2"
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#475569 transparent',
