@@ -237,16 +237,17 @@ export class LiveTranslationApp extends AppServer {
     userId: string
   ): Promise<void> {
     try {
-      // Check simpleStorage first, then in-memory maps, then session settings, then defaults
+      // Check simpleStorage first, then in-memory maps, then defaults
+      // Note: We prioritize app-specific storage over glasses settings to ensure consistent defaults
       const storedSourceLang = await session.simpleStorage.get("sourceLang");
       const storedTargetLang = await session.simpleStorage.get("targetLang");
 
       const sourceLang = (storedSourceLang && storedSourceLang !== "NONE") ? storedSourceLang :
                         userSourceLanguages.get(userId) ||
-                        session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
+                        defaultSettings.transcribeLanguage;
       const targetLang = (storedTargetLang && storedTargetLang !== "NONE") ? storedTargetLang :
                         userTargetLanguages.get(userId) ||
-                        session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+                        defaultSettings.translateLanguage;
 
       console.log(`[Settings] Retrieved languages - Stored: ${storedSourceLang} -> ${storedTargetLang}, Final: ${sourceLang} -> ${targetLang}`);
       const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);

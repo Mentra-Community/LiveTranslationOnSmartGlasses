@@ -22,7 +22,7 @@ export const TranslationTranscript: React.FC = () => {
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [languagePair, setLanguagePair] = useState<LanguagePair>({
     from: 'English',
-    to: 'Pick a language'
+    to: 'Chinese'
   });
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isProgrammaticScrollRef = useRef(false);
@@ -85,6 +85,13 @@ export const TranslationTranscript: React.FC = () => {
   }));
 
   const targetLanguageOptions = createGroupedOptions(targetLanguageFlat);
+
+  // Debug logging
+  console.log('🎯 Target language state:', {
+    languagePairTo: languagePair.to,
+    targetLangAvailable,
+    targetLanguageOptions: targetLanguageFlat
+  });
 
   // Helper function to find an option in grouped options
   const findOptionInGroups = (
@@ -391,18 +398,29 @@ export const TranslationTranscript: React.FC = () => {
     // Fetch language settings first
     api.getLanguageSettings(getHeaders())
       .then(data => {
+        console.log('📥 API returned language settings:', data);
+
+        // Normalize language names to match Languages.json format
+        // Backend might return "Chinese (Hanzi)" or "Chinese (Pinyin)", but we need just "Chinese"
+        let normalizedTo = data.to;
+        if (normalizedTo.startsWith('Chinese')) {
+          normalizedTo = 'Chinese';
+        }
+
         setLanguagePair({
           from: data.from,
-          to: data.to
+          to: normalizedTo
         });
+        console.log('✅ Set language pair to:', { from: data.from, to: normalizedTo });
       })
       .catch(error => {
         console.error('Error fetching language settings:', error);
-        // Set default language pair if API fails - default to English
+        // Set default language pair if API fails - default to English → Chinese
         setLanguagePair({
           from: 'English',
-          to: 'Pick a language'
+          to: 'Chinese'
         });
+        console.log('⚠️ Using fallback language pair: English → Chinese');
       });
 
     // Connect to SSE using environment variable and auth token
