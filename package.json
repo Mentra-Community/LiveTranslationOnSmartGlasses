@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@mentra/livetranslation": ".",
-    "@mentra/sdk": "2.1.26",
+    "@mentra/sdk": "^2.1.27",
     "@node-rs/jieba": "^2.0.1",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",

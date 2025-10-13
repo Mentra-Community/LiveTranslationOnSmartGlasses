@@ -140,5 +140,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  html {
+    overscroll-behavior: none;
+  }
+  /* Prevent overscroll bounce on all elements */
+  * {
+    overscroll-behavior: none;
   }
 }

@@ -24,9 +24,52 @@ export const TranslationTranscript: React.FC = () => {
     from: 'English',
     to: 'Pick a language'
   });
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollCheckTimeoutRef = useRef<number | null>(null);
+
+  // Popular languages list (in exact order specified)
+  const popularLanguages = [
+    "English", "Spanish", "French", "German", "Chinese",
+    "Japanese", "Korean", "Portuguese", "Russian", "Arabic"
+  ];
+
+  // Helper function to create grouped and sorted options
+  const createGroupedOptions = (languageList: Array<{ value: string; label: string }>) => {
+    const popularOptions: Array<{ value: string; label: string }> = [];
+    const otherOptions: Array<{ value: string; label: string }> = [];
+
+    // Separate popular languages and others
+    languageList.forEach(option => {
+      if (popularLanguages.includes(option.label)) {
+        popularOptions.push(option);
+      } else {
+        otherOptions.push(option);
+      }
+    });
+
+    // Sort popular languages by the order in popularLanguages array
+    popularOptions.sort((a, b) => {
+      return popularLanguages.indexOf(a.label) - popularLanguages.indexOf(b.label);
+    });
+
+    // Sort other languages alphabetically
+    otherOptions.sort((a, b) => a.label.localeCompare(b.label));
+
+    return [
+      {
+        label: 'Popular Languages',
+        options: popularOptions
+      },
+      {
+        label: 'All Languages',
+        options: otherOptions
+      }
+    ];
+  };
 
   // Create dropdown options from languages
-  const sourceLanguageOptions = Object.entries(languages as any).map(([code, lang]) => {
+  const sourceLanguageFlat = Object.entries(languages as any).map(([code, lang]) => {
     const langName = Object.values((lang as any).source_language)[0] as string;
     return {
       value: code,
@@ -34,10 +77,26 @@ export const TranslationTranscript: React.FC = () => {
     };
   });
 
-  const targetLanguageOptions = targetLangAvailable.map(lang => ({
+  const sourceLanguageOptions = createGroupedOptions(sourceLanguageFlat);
+
+  const targetLanguageFlat = targetLangAvailable.map(lang => ({
     value: lang.toLowerCase(),
     label: lang.charAt(0).toUpperCase() + lang.slice(1)
   }));
+
+  const targetLanguageOptions = createGroupedOptions(targetLanguageFlat);
+
+  // Helper function to find an option in grouped options
+  const findOptionInGroups = (
+    groups: Array<{ label: string; options: Array<{ value: string; label: string }> }>,
+    predicate: (opt: { value: string; label: string }) => boolean
+  ) => {
+    for (const group of groups) {
+      const found = group.options.find(predicate);
+      if (found) return found;
+    }
+    return null;
+  };
 
   // Helper function to convert display name back to language code for dropdown
   const getLanguageCodeFromDisplayName = (displayName: string): string => {
@@ -128,6 +187,25 @@ export const TranslationTranscript: React.FC = () => {
     }),
     indicatorSeparator: () => ({
       display: 'none',
+    }),
+    group: (base: Record<string, unknown>) => ({
+      ...base,
+      paddingTop: '0.5rem',
+      paddingBottom: '0.5rem',
+    }),
+    groupHeading: (base: Record<string, unknown>) => ({
+      ...base,
+      color: '#94a3b8',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.05em',
+      paddingLeft: '0.75rem',
+      paddingRight: '0.75rem',
+      paddingTop: '0.5rem',
+      paddingBottom: '0.25rem',
+      marginBottom: '0.25rem',
+      backgroundColor: 'rgba(51, 65, 85, 0.5)',
     }),
   };
 
@@ -426,10 +504,20 @@ export const TranslationTranscript: React.FC = () => {
   // Handle autoscroll - scroll to bottom when new entries arrive or autoscroll is enabled
   useEffect(() => {
     if (autoscrollEnabled && transcriptRef.current) {
-      transcriptRef.current.scrollTo({
-        top: transcriptRef.current.scrollHeight,
-        behavior: 'smooth'
+      isProgrammaticScrollRef.current = true;
+      // Use requestAnimationFrame to ensure DOM has updated before scrolling
+      requestAnimationFrame(() => {
+        if (transcriptRef.current) {
+          transcriptRef.current.scrollTo({
+            top: transcriptRef.current.scrollHeight + 100, // Add extra pixels to ensure we reach the very bottom
+            behavior: 'smooth'
+          });
+        }
       });
+      // Reset the flag after scroll animation completes (smooth scroll takes ~300-500ms)
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 600);
     }
   }, [entries, autoscrollEnabled]);
 
@@ -437,8 +525,14 @@ export const TranslationTranscript: React.FC = () => {
   const handleScroll = () => {
     if (!transcriptRef.current) return;
 
+    // Ignore scroll events caused by programmatic scrolling
+    if (isProgrammaticScrollRef.current) return;
+
     const { scrollTop, scrollHeight, clientHeight } = transcriptRef.current;
     const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+    // Show scroll button when not at bottom
+    setShowScrollButton(!isScrolledToBottom);
 
     // Only change state if needed (avoid unnecessary renders)
     if (autoscrollEnabled && !isScrolledToBottom) {
@@ -447,6 +541,21 @@ export const TranslationTranscript: React.FC = () => {
     } else if (!autoscrollEnabled && isScrolledToBottom) {
       // User scrolled back to bottom, re-enable autoscroll
       setAutoscrollEnabled(true);
+    }
+  };
+
+  // Function to scroll to bottom when button is clicked
+  const scrollToBottom = () => {
+    if (transcriptRef.current) {
+      isProgrammaticScrollRef.current = true;
+      transcriptRef.current.scrollTo({
+        top: transcriptRef.current.scrollHeight + 100,
+        behavior: 'smooth'
+      });
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+        setShowScrollButton(false);
+      }, 600);
     }
   };
 
@@ -506,11 +615,11 @@ export const TranslationTranscript: React.FC = () => {
           0%, 100% { height: 8px; }
           50% { height: 20px; }
         }
-        .bar-1 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0s; }
-        .bar-2 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.1s; }
-        .bar-3 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.2s; }
-        .bar-4 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.3s; }
-        .bar-5 { animation: wave 0.8s ease-in-out infinite; animation-delay: 0.4s; }
+        .bar-1 { animation: wave 1.6s ease-in-out infinite; animation-delay: 0s; }
+        .bar-2 { animation: wave 1.6s ease-in-out infinite; animation-delay: 0.2s; }
+        .bar-3 { animation: wave 1.6s ease-in-out infinite; animation-delay: 0.4s; }
+        .bar-4 { animation: wave 1.6s ease-in-out infinite; animation-delay: 0.6s; }
+        .bar-5 { animation: wave 1.6s ease-in-out infinite; animation-delay: 0.8s; }
       `}</style>
 
       {/* Sticky Header at Top */}
@@ -528,30 +637,31 @@ export const TranslationTranscript: React.FC = () => {
                 <div className="w-0.5 bg-blue-500 rounded-sm bar-4"></div>
                 <div className="w-0.5 bg-blue-500 rounded-sm bar-5"></div>
               </div>
-              <span className={`text-xs font-medium ${listening ? 'text-[#00d4ff]' : 'text-blue-400'}`}>
+              {/* <span className={`text-xs font-medium ${listening ? 'text-[#00d4ff]' : 'text-blue-400'}`}>
                 {listening ? 'Listening' : 'Ready'}
-              </span>
+              </span> */}
             </div>
 
             {/* Right: Auto-scroll Toggle (Compact) + Expand Button */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setAutoscrollEnabled(!autoscrollEnabled)}
-                className={`relative w-10 h-5 rounded-full transition-all ${
-                  autoscrollEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-slate-700'
-                }`}
-                title={autoscrollEnabled ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center transition-transform ${
-                    autoscrollEnabled ? 'translate-x-5' : 'translate-x-0'
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-300">Auto Scroll</span>
+                <button
+                  onClick={() => setAutoscrollEnabled(!autoscrollEnabled)}
+                  className={`relative w-10 h-5 rounded-full transition-all ${
+                    autoscrollEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-slate-700'
                   }`}
+                  title={autoscrollEnabled ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
                 >
-                  <ArrowDown className={`w-2.5 h-2.5 transition-colors ${
-                    autoscrollEnabled ? 'text-purple-600' : 'text-slate-400'
-                  }`} />
-                </div>
-              </button>
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center transition-transform ${
+                      autoscrollEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  >
+                    
+                  </div>
+                </button>
+              </div>
 
               {/* <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -575,17 +685,17 @@ export const TranslationTranscript: React.FC = () => {
                     Source
                   </label>
                   <Select
-                    value={sourceLanguageOptions.find(opt => opt.value === getLanguageCodeFromDisplayName(languagePair.from))}
+                    value={findOptionInGroups(sourceLanguageOptions, opt => opt.value === getLanguageCodeFromDisplayName(languagePair.from))}
                     onChange={(option) => {
                       if (option) {
                         const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
                         handleSourceLanguageChange(event);
                       }
                     }}
-                    
+
                     options={sourceLanguageOptions}
                     isDisabled={isLanguageLoading}
-                    isSearchable={true}
+                    isSearchable={false}
                     placeholder="Search languages..."
                     styles={customSelectStyles}
                     className="react-select-container"
@@ -610,7 +720,7 @@ export const TranslationTranscript: React.FC = () => {
                     Target
                   </label>
                   <Select
-                    value={targetLanguageOptions.find(opt => opt.value === languagePair.to.toLowerCase()) || null}
+                    value={findOptionInGroups(targetLanguageOptions, opt => opt.value === languagePair.to.toLowerCase())}
                     onChange={(option) => {
                       if (option) {
                         const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
@@ -619,7 +729,7 @@ export const TranslationTranscript: React.FC = () => {
                     }}
                     options={targetLanguageOptions}
                     isDisabled={isLanguageLoading}
-                    isSearchable={true}
+                    isSearchable={false}
                     placeholder="Search..."
                     styles={customSelectStyles}
                     className="react-select-container"
@@ -641,7 +751,7 @@ export const TranslationTranscript: React.FC = () => {
         <div
           ref={transcriptRef}
           onScroll={handleScroll}
-          className="space-y-4 overflow-y-auto pr-2"
+          className="space-y-4 overflow-y-auto pr-2 pb-8"
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#475569 transparent',
@@ -707,6 +817,23 @@ export const TranslationTranscript: React.FC = () => {
             })
           )}
         </div>
+
+      {/* Scroll to Bottom Button */}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={scrollToBottom}
+            className="fixed bottom-8 right-8 bg-gradient-to-r from-blue-500 to-[#004782] text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-shadow z-50"
+            title="Scroll to bottom"
+          >
+            <ArrowDown className="w-5 h-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
