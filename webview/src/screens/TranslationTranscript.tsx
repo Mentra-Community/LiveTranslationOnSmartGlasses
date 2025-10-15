@@ -14,7 +14,6 @@ import Select from 'react-select';
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
-  const [listening, setListening] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isCheckingUserSession, setIsCheckingUserSession] = useState(false);
@@ -26,7 +25,6 @@ export const TranslationTranscript: React.FC = () => {
   });
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isProgrammaticScrollRef = useRef(false);
-  const scrollCheckTimeoutRef = useRef<number | null>(null);
 
   // Popular languages list (in exact order specified)
   const popularLanguages = [
@@ -433,12 +431,10 @@ export const TranslationTranscript: React.FC = () => {
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
-      setListening(true);
       terminal.log('✅ Connected to translation events');
     };
 
     eventSource.onerror = (error) => {
-      setListening(false);
       terminal.error('❌ SSE connection error:', error);
     };
 
@@ -515,7 +511,6 @@ export const TranslationTranscript: React.FC = () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
-      setListening(false);
     };
   }, [isLoading, getHeaders, getAuthQuery, isAuthenticated, token]); // Dependencies for API calls
 
@@ -660,10 +655,19 @@ export const TranslationTranscript: React.FC = () => {
               </span> */}
             </div>
 
-            {/* Right: Auto-scroll Toggle (Compact) + Expand Button */}
+            {/* Right: Auto-scroll Toggle (Compact) + Test Button */}
             <div className="flex items-center gap-3">
+              {/* Test Loading Button */}
+              {/* <button
+                onClick={() => setIsLanguageLoading(!isLanguageLoading)}
+                className="px-3 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+                title="Test loading animation"
+              >
+                Test
+              </button> */}
+
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-300">Auto Scroll</span>
+                <span className="text-[10px] text-[#b0b0b0]">Auto-scroll</span>
                 <button
                   onClick={() => setAutoscrollEnabled(!autoscrollEnabled)}
                   className={`relative w-10 h-5 rounded-full transition-all ${
@@ -676,7 +680,7 @@ export const TranslationTranscript: React.FC = () => {
                       autoscrollEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   >
-                    
+
                   </div>
                 </button>
               </div>
@@ -726,11 +730,12 @@ export const TranslationTranscript: React.FC = () => {
                 <button
                   onClick={swapLanguages}
                   disabled={isLanguageLoading}
-                  className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all transform active:scale-95 mt-5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
+                  className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg transition-all transform active:scale-95 mt-5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 tap-highlight-transparent [-webkit-tap-highlight-color:transparent]"
                   title="Swap languages"
                 >
                   <ArrowLeftRight className="w-4 h-4" />
                 </button>
+
 
                 <div className="flex-1">
                   <label className="text-xs text-purple-400 font-medium mb-1 flex items-center gap-1">
@@ -765,15 +770,61 @@ export const TranslationTranscript: React.FC = () => {
         </div>
       </div>
 
-      {/* Translation Display */}
+      {/* Translation Display Container */}
+      <div className="relative rounded-2xl" style={{ height: 'calc(100vh - 200px)' }}>
+        {/* Loading Language Splash Overlay */}
+        <AnimatePresence>
+          {isLanguageLoading && (
+            <motion.div
+              className="absolute inset-0 z-[200] flex items-center justify-center bg-[#ffffff07] backdrop-blur-md rounded-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <motion.div
+                className="text-center"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+              >
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  {/* Outer rotating ring */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-blue-400/60 border-r-purple-400/60"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  {/* Inner rotating ring */}
+                  <motion.div
+                    className="absolute inset-3 rounded-full border-[3px] border-transparent border-b-purple-400/50 border-l-blue-400/50"
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  {/* Center pulse dot */}
+                  <motion.div
+                    className="absolute inset-0 m-auto w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-400/80 to-purple-400/80"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.9, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </div>
+                <p className="text-sm font-medium bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mt-4 drop-shadow-[0_0_8px_rgba(147,197,253,0.5)]">
+                  Loading language...
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Translation Display */}
         <div
           ref={transcriptRef}
           onScroll={handleScroll}
-          className="space-y-4 overflow-y-auto pr-2 pb-8"
+          className="h-full space-y-4 overflow-y-auto pr-2 pb-8"
           style={{
             scrollbarWidth: 'thin',
-            scrollbarColor: '#475569 transparent',
-            maxHeight: 'calc(100vh - 200px)'
+            scrollbarColor: '#475569 transparent'
           }}
         >
           {entries.length === 0 ? (
@@ -835,6 +886,7 @@ export const TranslationTranscript: React.FC = () => {
             })
           )}
         </div>
+      </div>
 
       {/* Scroll to Bottom Button */}
       <AnimatePresence>
