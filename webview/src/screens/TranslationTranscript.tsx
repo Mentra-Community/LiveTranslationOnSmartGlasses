@@ -4,6 +4,9 @@ import { TranslationEntry, LanguagePair } from '../types';
 import { useAuthenticatedApi } from '../hooks/useAuthenticatedApi';
 import api from '../Api';
 import { terminal } from 'virtual:terminal';
+import TpaConnectionError from './TpaConnectionError';
+// import
+
 import { ArrowLeftRight, Mic, ArrowDown } from 'lucide-react';
 import languages from "../soniox/Languages.json"
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +17,7 @@ import { Select, MenuItem, ListSubheader } from '@mui/material';
 export const TranslationTranscript: React.FC = () => {
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [autoscrollEnabled, setAutoscrollEnabled] = useState(true);
+  const [isUserIdAppSession, setIsUserIdAppSession] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isCheckingUserSession, setIsCheckingUserSession] = useState(false);
@@ -323,15 +327,18 @@ export const TranslationTranscript: React.FC = () => {
       (api as any).getUserAppActive(userId || 'unknown-user')
         .then((userActivity: any) => {
           terminal.log(`userId: ${userId} app session is ${userActivity.active ? "online" : "offline"}`);
+          setIsUserIdAppSession(userActivity.active);
           setIsCheckingUserSession(false);
         })
         .catch((error: any) => {
           terminal.error('Error fetching user activity:', error);
+          setIsUserIdAppSession(false);
           setIsCheckingUserSession(false);
         });
     } else {
       // If method doesn't exist, just mark as done
       terminal.log('getUserAppActive not available, skipping session check');
+      setIsUserIdAppSession(true); // Default to true if API not available
       setIsCheckingUserSession(false);
     }
 
@@ -548,8 +555,34 @@ export const TranslationTranscript: React.FC = () => {
     );
   }
 
+  // Show loading while checking user session
+  if (isCheckingUserSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking connection...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking user session
+  if (isCheckingUserSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking connection...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col overflow-hidden">
+    <div>
+      {isAuthenticated && isUserIdAppSession ? (
+        <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col overflow-hidden">
       {/* Splash Screen Overlay */}
       <AnimatePresence>
         {showSplash && (
@@ -1003,6 +1036,10 @@ export const TranslationTranscript: React.FC = () => {
           </motion.button>
         )}
       </AnimatePresence>
+    </div>
+      ) : (
+        <TpaConnectionError />
+      )}
     </div>
   );
 };

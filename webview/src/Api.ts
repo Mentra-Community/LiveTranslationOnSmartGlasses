@@ -47,6 +47,29 @@ const api = {
     }
   },
 
+  // End point to check if a user/email has an active app session on TPA server (in memory)
+  async getUserAppActive(userId: string): Promise<{active: boolean}> {
+    try {
+      const url = `${API_BASE_URL}/api/user-app-session-active?email=${encodeURIComponent(userId)}`;
+      terminal.log('checking for ', userId, `app activity`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      terminal.log('user activity data:', data);
+      
+      return data;
+
+    } catch (error) {
+      terminal.error('Error fetching user-active status:', error);
+      return { active: false };
+    }
+  },
+
+
   // Update language settings
   async updateLanguageSettings(languagePair: Partial<LanguagePair>, headers?: HeadersInit): Promise<LanguagePair> {
     try {
