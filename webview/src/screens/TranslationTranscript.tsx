@@ -8,7 +8,7 @@ import { ArrowLeftRight, Mic, ArrowDown } from 'lucide-react';
 import languages from "../soniox/Languages.json"
 import { motion, AnimatePresence } from 'framer-motion';
 import SplashScreen from './SplashScreen';
-import Select from 'react-select';
+import { Select, MenuItem, ListSubheader } from '@mui/material';
 
 
 export const TranslationTranscript: React.FC = () => {
@@ -32,17 +32,42 @@ export const TranslationTranscript: React.FC = () => {
     "Japanese", "Korean", "Portuguese", "Russian", "Arabic"
   ];
 
+  // Hardcoded list of languages to EXCLUDE from dropdowns
+  const excludedLanguages = [
+    "Azerburmeseaijani",
+    "Hebrew"
+    ,"Arabic"  
+    ,"Vietnamese"
+    ,"Persian"
+    ,"Thai"
+  ];
+
   // Helper function to create grouped and sorted options
   const createGroupedOptions = (languageList: Array<{ value: string; label: string }>) => {
+    // const MAX_LABEL_LENGTH = 14;
+
+    // // Helper to truncate labels
+    // const truncateLabel = (label: string) => {
+    //   return label.length > MAX_LABEL_LENGTH
+    //     ? label.slice(0, MAX_LABEL_LENGTH) + '...'
+    //     : label;
+    // };
+
     const popularOptions: Array<{ value: string; label: string }> = [];
     const otherOptions: Array<{ value: string; label: string }> = [];
 
     // Separate popular languages and others
     languageList.forEach(option => {
       if (popularLanguages.includes(option.label)) {
-        popularOptions.push(option);
+        popularOptions.push({
+          ...option,
+          label: option.label
+        });
       } else {
-        otherOptions.push(option);
+        otherOptions.push({
+          ...option,
+          label: option.label
+        });
       }
     });
 
@@ -51,8 +76,13 @@ export const TranslationTranscript: React.FC = () => {
       return popularLanguages.indexOf(a.label) - popularLanguages.indexOf(b.label);
     });
 
-    // Sort other languages alphabetically
-    otherOptions.sort((a, b) => a.label.localeCompare(b.label));
+    // Sort all languages alphabetically for the "All Languages" section
+    const allLanguagesSorted = [...languageList]
+      .map(option => ({
+        ...option,
+        label: option.label
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
 
     return [
       {
@@ -61,26 +91,30 @@ export const TranslationTranscript: React.FC = () => {
       },
       {
         label: 'All Languages',
-        options: otherOptions
+        options: allLanguagesSorted
       }
     ];
   };
 
   // Create dropdown options from languages
-  const sourceLanguageFlat = Object.entries(languages as any).map(([code, lang]) => {
-    const langName = Object.values((lang as any).source_language)[0] as string;
-    return {
-      value: code,
-      label: langName.charAt(0).toUpperCase() + langName.slice(1)
-    };
-  });
+  const sourceLanguageFlat = Object.entries(languages as any)
+    .map(([code, lang]) => {
+      const langName = Object.values((lang as any).source_language)[0] as string;
+      return {
+        value: code,
+        label: langName.charAt(0).toUpperCase() + langName.slice(1)
+      };
+    })
+    .filter(lang => !excludedLanguages.includes(lang.label)); // Filter out excluded languages
 
   const sourceLanguageOptions = createGroupedOptions(sourceLanguageFlat);
 
-  const targetLanguageFlat = targetLangAvailable.map(lang => ({
-    value: lang.toLowerCase(),
-    label: lang.charAt(0).toUpperCase() + lang.slice(1)
-  }));
+  const targetLanguageFlat = targetLangAvailable
+    .map(lang => ({
+      value: lang.toLowerCase(),
+      label: lang.charAt(0).toUpperCase() + lang.slice(1)
+    }))
+    .filter(lang => !excludedLanguages.includes(lang.label)); // Filter out excluded languages
 
   const targetLanguageOptions = createGroupedOptions(targetLanguageFlat);
 
@@ -90,18 +124,6 @@ export const TranslationTranscript: React.FC = () => {
     targetLangAvailable,
     targetLanguageOptions: targetLanguageFlat
   });
-
-  // Helper function to find an option in grouped options
-  const findOptionInGroups = (
-    groups: Array<{ label: string; options: Array<{ value: string; label: string }> }>,
-    predicate: (opt: { value: string; label: string }) => boolean
-  ) => {
-    for (const group of groups) {
-      const found = group.options.find(predicate);
-      if (found) return found;
-    }
-    return null;
-  };
 
   // Helper function to convert display name back to language code for dropdown
   const getLanguageCodeFromDisplayName = (displayName: string): string => {
@@ -123,96 +145,6 @@ export const TranslationTranscript: React.FC = () => {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
-
-
-
-  // Custom styles for React Select to match app theme
-  const customSelectStyles = {
-    control: (base: Record<string, unknown>, state: { isFocused: boolean }) => ({
-      ...base,
-      backgroundColor: 'rgba(30, 41, 59, 0.8)',
-      borderColor: state.isFocused ? '#3b82f6' : '#334155',
-      borderRadius: '0.5rem',
-      padding: '0.125rem',
-      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
-      cursor: 'pointer',
-      '&:hover': {
-        backgroundColor: 'rgba(30, 41, 59, 1)',
-        borderColor: state.isFocused ? '#3b82f6' : '#475569',
-      },
-    }),
-    menu: (base: Record<string, unknown>) => ({
-      ...base,
-      backgroundColor: 'rgba(30, 41, 59, 0.95)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid #334155',
-      borderRadius: '0.5rem',
-      overflow: 'hidden',
-      zIndex: 9999,
-    }),
-    menuPortal: (base: Record<string, unknown>) => ({
-      ...base,
-      zIndex: 9999,
-    }),
-    option: (base: Record<string, unknown>, state: { isSelected: boolean; isFocused: boolean }) => ({
-      ...base,
-      backgroundColor: state.isSelected
-        ? 'rgba(59, 130, 246, 0.3)'
-        : state.isFocused
-        ? 'rgba(59, 130, 246, 0.1)'
-        : 'transparent',
-      color: '#e2e8f0',
-      cursor: 'pointer',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      '&:active': {
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-      },
-    }),
-    singleValue: (base: Record<string, unknown>) => ({
-      ...base,
-      color: '#e2e8f0',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-    }),
-    input: (base: Record<string, unknown>) => ({
-      ...base,
-      color: '#e2e8f0',
-    }),
-    placeholder: (base: Record<string, unknown>) => ({
-      ...base,
-      color: '#94a3b8',
-    }),
-    dropdownIndicator: (base: Record<string, unknown>) => ({
-      ...base,
-      color: '#94a3b8',
-      '&:hover': {
-        color: '#cbd5e1',
-      },
-    }),
-    indicatorSeparator: () => ({
-      display: 'none',
-    }),
-    group: (base: Record<string, unknown>) => ({
-      ...base,
-      paddingTop: '0.5rem',
-      paddingBottom: '0.5rem',
-    }),
-    groupHeading: (base: Record<string, unknown>) => ({
-      ...base,
-      color: '#94a3b8',
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      textTransform: 'uppercase' as const,
-      letterSpacing: '0.05em',
-      paddingLeft: '0.75rem',
-      paddingRight: '0.75rem',
-      paddingTop: '0.5rem',
-      paddingBottom: '0.25rem',
-      marginBottom: '0.25rem',
-      backgroundColor: 'rgba(51, 65, 85, 0.5)',
-    }),
-  };
 
   // Check if splash should be shown based on 10-second timer
   useEffect(() => {
@@ -294,14 +226,24 @@ export const TranslationTranscript: React.FC = () => {
     terminal.log('Source language changed to:', formattedSourceLang);
 
     try {
-      // Get available target languages and set to first available option
+      // Get available target languages
       const availableTargets = handleAvailableTargetLang(newSourceLangCode);
-      const defaultTarget = availableTargets.length > 0 ?
-        availableTargets[0].charAt(0).toUpperCase() + availableTargets[0].slice(1) :
-        'Pick a language';
+
+      // Check if current target language is still supported
+      const currentTarget = languagePair.to;
+      const isCurrentTargetStillAvailable = availableTargets.some(
+        (lang: string) => lang.toLowerCase() === currentTarget.toLowerCase()
+      );
+
+      // Only change target if current one is not supported
+      const finalTarget = isCurrentTargetStillAvailable
+        ? currentTarget  // Keep current target if still supported
+        : (availableTargets.length > 0
+            ? availableTargets[0].charAt(0).toUpperCase() + availableTargets[0].slice(1)
+            : 'Pick a language');
 
       const updatedPair = await api.updateLanguageSettings(
-        { from: formattedSourceLang, to: defaultTarget },
+        { from: formattedSourceLang, to: finalTarget },
         getHeaders()
       );
       setLanguagePair(updatedPair);
@@ -707,24 +649,102 @@ export const TranslationTranscript: React.FC = () => {
                     Source
                   </label>
                   <Select
-                    value={findOptionInGroups(sourceLanguageOptions, opt => opt.value === getLanguageCodeFromDisplayName(languagePair.from))}
-                    onChange={(option) => {
-                      if (option) {
-                        const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
-                        handleSourceLanguageChange(event);
-                      }
+                    value={getLanguageCodeFromDisplayName(languagePair.from)}
+                    onChange={(e) => {
+                      const event = { target: { value: e.target.value } } as React.ChangeEvent<HTMLSelectElement>;
+                      handleSourceLanguageChange(event);
                     }}
-
-                    options={sourceLanguageOptions}
-                    isDisabled={isLanguageLoading}
-                    isSearchable={false}
-                    placeholder="Search languages..."
-                    styles={customSelectStyles}
-                    className="react-select-container"
-                    classNamePrefix="react-select capitalize"
-                    menuPosition="fixed"
-                    menuPortalTarget={document.body}
-                  />
+                    disabled={isLanguageLoading}
+                    renderValue={() => {
+                      const label = languagePair.from;
+                      return label.length > 14 ? label.slice(0, 14) + '...' : label;
+                    }}
+                    sx={{
+                      width: '100%',
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                      borderRadius: '0.5rem',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#334155',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#475569',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#3b82f6',
+                        borderWidth: '2px',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '10px 14px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        color: '#e2e8f0',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: '#94a3b8',
+                      },
+                    }}
+                    MenuProps={{
+                      disableScrollLock: true,
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                          backdropFilter: 'blur(12px)',
+                          border: '1px solid #334155',
+                          maxHeight: '400px',
+                          minWidth: '100%',
+                          width: 'auto',
+                          '& .MuiMenuItem-root': {
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            color: '#e2e8f0',
+                            padding: '12px 16px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(59, 130, 246, 0.4)',
+                              },
+                            },
+                          },
+                          '& .MuiListSubheader-root': {
+                            color: '#94a3b8',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            backgroundColor: 'rgba(51, 65, 85, 0.95)',
+                            backdropFilter: 'blur(8px)',
+                            lineHeight: '2.5',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                          },
+                        },
+                      },
+                      MenuListProps: {
+                        disableListWrap: true,
+                        autoFocusItem: false,
+                        sx: {
+                          paddingTop: 0,
+                        },
+                      },
+                    }}
+                  >
+                    {sourceLanguageOptions.map((group) => [
+                      <ListSubheader key={`${group.label}-header`}>{group.label}</ListSubheader>,
+                      ...group.options.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))
+                    ])}
+                  </Select>
                 </div>
 
                 <button
@@ -743,23 +763,102 @@ export const TranslationTranscript: React.FC = () => {
                     Target
                   </label>
                   <Select
-                    value={findOptionInGroups(targetLanguageOptions, opt => opt.value === languagePair.to.toLowerCase())}
-                    onChange={(option) => {
-                      if (option) {
-                        const event = { target: { value: option.value } } as React.ChangeEvent<HTMLSelectElement>;
-                        handleTargetLanguageChange(event);
-                      }
+                    value={languagePair.to.toLowerCase()}
+                    onChange={(e) => {
+                      const event = { target: { value: e.target.value } } as React.ChangeEvent<HTMLSelectElement>;
+                      handleTargetLanguageChange(event);
                     }}
-                    options={targetLanguageOptions}
-                    isDisabled={isLanguageLoading}
-                    isSearchable={false}
-                    placeholder="Search..."
-                    styles={customSelectStyles}
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    menuPosition="fixed"
-                    menuPortalTarget={document.body}
-                  />
+                    disabled={isLanguageLoading}
+                    renderValue={() => {
+                      const label = languagePair.to;
+                      return label.length > 14 ? label.slice(0, 14) + '...' : label;
+                    }}
+                    sx={{
+                      width: '100%',
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                      borderRadius: '0.5rem',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#334155',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#475569',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#a855f7',
+                        borderWidth: '2px',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '10px 14px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        color: '#e2e8f0',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: '#94a3b8',
+                      },
+                    }}
+                    MenuProps={{
+                      disableScrollLock: true,
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                          backdropFilter: 'blur(12px)',
+                          border: '1px solid #334155',
+                          maxHeight: '400px',
+                          minWidth: '100%',
+                          width: 'auto',
+                          '& .MuiMenuItem-root': {
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            color: '#e2e8f0',
+                            padding: '12px 16px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(168, 85, 247, 0.3)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(168, 85, 247, 0.4)',
+                              },
+                            },
+                          },
+                          '& .MuiListSubheader-root': {
+                            color: '#94a3b8',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            backgroundColor: 'rgba(51, 65, 85, 0.95)',
+                            backdropFilter: 'blur(8px)',
+                            lineHeight: '2.5',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                          },
+                        },
+                      },
+                      MenuListProps: {
+                        disableListWrap: true,
+                        autoFocusItem: false,
+                        sx: {
+                          paddingTop: 0,
+                        },
+                      },
+                    }}
+                  >
+                    {targetLanguageOptions.map((group) => [
+                      <ListSubheader key={`${group.label}-header`}>{group.label}</ListSubheader>,
+                      ...group.options.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))
+                    ])}
+                  </Select>
                 </div>
               </div>
 
