@@ -29,6 +29,10 @@ export const TranslationTranscript: React.FC = () => {
   });
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isProgrammaticScrollRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const forceAutoscrollRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const isScrollingUpRef = useRef(false);
 
   // Popular languages list (in exact order specified)
   const popularLanguages = [
@@ -460,26 +464,45 @@ export const TranslationTranscript: React.FC = () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
     };
   }, [isLoading, getHeaders, getAuthQuery, isAuthenticated, token]); // Dependencies for API calls
 
   // Handle autoscroll - scroll to bottom when new entries arrive or autoscroll is enabled
   useEffect(() => {
     if (autoscrollEnabled && transcriptRef.current) {
-      isProgrammaticScrollRef.current = true;
-      // Use requestAnimationFrame to ensure DOM has updated before scrolling
-      requestAnimationFrame(() => {
-        if (transcriptRef.current) {
-          transcriptRef.current.scrollTo({
-            top: transcriptRef.current.scrollHeight + 100, // Add extra pixels to ensure we reach the very bottom
-            behavior: 'smooth'
-          });
-        }
-      });
-      // Reset the flag after scroll animation completes (smooth scroll takes ~300-500ms)
-      setTimeout(() => {
-        isProgrammaticScrollRef.current = false;
-      }, 600);
+      // Don't autoscroll if user is actively scrolling up
+      if (isScrollingUpRef.current) {
+        return;
+      }
+
+      // Check if user is currently scrolled up before autoscrolling
+      const { scrollTop, scrollHeight, clientHeight } = transcriptRef.current;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // More lenient threshold when autoscroll is enabled - scroll if within 250px OR force flag is set
+      // This ensures we stay at bottom even with small position shifts from content updates
+      if (distanceFromBottom <= 250 || forceAutoscrollRef.current) {
+        isProgrammaticScrollRef.current = true;
+        // Use requestAnimationFrame to ensure DOM has updated before scrolling
+        requestAnimationFrame(() => {
+          if (transcriptRef.current) {
+            transcriptRef.current.scrollTo({
+              top: transcriptRef.current.scrollHeight + 100, // Add extra pixels to ensure we reach the very bottom
+              behavior: 'smooth'
+            });
+          }
+        });
+        // Reset the flag after scroll animation completes (smooth scroll takes ~300-500ms)
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 600);
+      } else {
+        // User is scrolled up significantly (more than 250px), disable autoscroll
+        setAutoscrollEnabled(false);
+      }
     }
   }, [entries, autoscrollEnabled]);
 
@@ -487,19 +510,48 @@ export const TranslationTranscript: React.FC = () => {
   const handleScroll = () => {
     if (!transcriptRef.current) return;
 
-    // Ignore scroll events caused by programmatic scrolling
-    if (isProgrammaticScrollRef.current) return;
+    // Ignore scroll events caused by programmatic scrolling OR when force autoscroll is active
+    if (isProgrammaticScrollRef.current || forceAutoscrollRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = transcriptRef.current;
-    const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    // More lenient threshold to account for subpixel rendering and the extra scroll we add
+    const isScrolledToBottom = distanceFromBottom < 150;
+
+    // Detect scroll direction
+    const currentScrollTop = scrollTop;
+    const scrollDirection = currentScrollTop < lastScrollTopRef.current ? 'up' : 'down';
+    lastScrollTopRef.current = currentScrollTop;
+
+    // Track if user is scrolling up
+    if (scrollDirection === 'up') {
+      isScrollingUpRef.current = true;
+      // Clear the flag after a short delay when scrolling stops
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingUpRef.current = false;
+      }, 150); // Clear after 150ms of no scroll
+    } else {
+      isScrollingUpRef.current = false;
+    }
 
     // Show scroll button when not at bottom
     setShowScrollButton(!isScrolledToBottom);
 
-    // Only change state if needed (avoid unnecessary renders)
+    // Only change autoscroll state if user manually scrolled
+    // Add a small delay to prevent race conditions with content updates
     if (autoscrollEnabled && !isScrolledToBottom) {
-      // User scrolled up, disable autoscroll
-      setAutoscrollEnabled(false);
+      // Only disable if user intentionally scrolled up (not just a slight shift from content updates)
+      // Check if they're significantly far from bottom (more than 200px)
+      if (distanceFromBottom > 200) {
+        setTimeout(() => {
+          if (!isProgrammaticScrollRef.current && !forceAutoscrollRef.current) {
+            setAutoscrollEnabled(false);
+          }
+        }, 100);
+      }
     } else if (!autoscrollEnabled && isScrolledToBottom) {
       // User scrolled back to bottom, re-enable autoscroll
       setAutoscrollEnabled(true);
@@ -510,14 +562,56 @@ export const TranslationTranscript: React.FC = () => {
   const scrollToBottom = () => {
     if (transcriptRef.current) {
       isProgrammaticScrollRef.current = true;
+      forceAutoscrollRef.current = true; // Force autoscroll for a couple seconds
+      isScrollingUpRef.current = false; // Clear the scrolling up flag
+
       transcriptRef.current.scrollTo({
         top: transcriptRef.current.scrollHeight + 100,
         behavior: 'smooth'
       });
+
+      // Re-enable autoscroll when user clicks the scroll-to-bottom button
+      setAutoscrollEnabled(true);
+
       setTimeout(() => {
         isProgrammaticScrollRef.current = false;
         setShowScrollButton(false);
       }, 600);
+
+      // Keep force autoscroll active for 2 seconds to handle incoming entries
+      setTimeout(() => {
+        forceAutoscrollRef.current = false;
+      }, 2000);
+    }
+  };
+
+  // Function to handle toggle button click
+  const handleToggleAutoscroll = () => {
+    const newValue = !autoscrollEnabled;
+    setAutoscrollEnabled(newValue);
+
+    // If enabling autoscroll, also scroll to bottom and force it for 2 seconds
+    if (newValue && transcriptRef.current) {
+      isProgrammaticScrollRef.current = true;
+      forceAutoscrollRef.current = true;
+      isScrollingUpRef.current = false; // Clear the scrolling up flag
+
+      transcriptRef.current.scrollTo({
+        top: transcriptRef.current.scrollHeight + 100,
+        behavior: 'smooth'
+      });
+
+      // Hide the scroll button immediately when enabling autoscroll
+      setShowScrollButton(false);
+
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 600);
+
+      // Keep force autoscroll active for 2 seconds to handle incoming entries
+      setTimeout(() => {
+        forceAutoscrollRef.current = false;
+      }, 2000);
     }
   };
 
@@ -644,7 +738,7 @@ export const TranslationTranscript: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[#b0b0b0]">Auto-scroll</span>
                 <button
-                  onClick={() => setAutoscrollEnabled(!autoscrollEnabled)}
+                  onClick={handleToggleAutoscroll}
                   className={`relative w-10 h-5 rounded-full transition-all ${
                     autoscrollEnabled ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-slate-700'
                   }`}
