@@ -484,7 +484,7 @@ export class LiveTranslationApp extends AppServer {
       
       // Show the text that matches the user's target language preference
       if (detectedTargetLocale.split('-')[0] === userTargetLocale.split('-')[0]) {
-        // The translated text matches user's target language - show translated text
+        // The translated text matches user's target language - show translated text 
         glassesDisplayText = newText;
       } else {
         
