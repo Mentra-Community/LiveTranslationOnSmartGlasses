@@ -34,6 +34,14 @@ export const TranslationTranscript: React.FC = () => {
   const lastScrollTopRef = useRef(0);
   const isScrollingUpRef = useRef(false);
 
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
+
+  // Extract userId from token and check if it contains "mentra" (case-insensitive)
+  const userId = token?.split(':')[0] || '';
+  const isMentraUser = userId.toLowerCase().includes('mentra');
+
   // Popular languages list (in exact order specified)
   const popularLanguages = [
     "English", "Spanish", "French", "German", "Chinese",
@@ -42,8 +50,8 @@ export const TranslationTranscript: React.FC = () => {
 
   // Hardcoded list of languages to EXCLUDE from dropdowns
   const excludedLanguages = [
-    "Azerburmeseaijani",
-    "Hebrew"
+    "Azerburmeseaijani"
+    ,"Hebrew"
     ,"Arabic"  
     ,"Vietnamese"
     ,"Persian"
@@ -113,7 +121,7 @@ export const TranslationTranscript: React.FC = () => {
         label: langName.charAt(0).toUpperCase() + langName.slice(1)
       };
     })
-    .filter(lang => !excludedLanguages.includes(lang.label)); // Filter out excluded languages
+    .filter(lang => isMentraUser || !excludedLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
 
   const sourceLanguageOptions = createGroupedOptions(sourceLanguageFlat);
 
@@ -122,7 +130,7 @@ export const TranslationTranscript: React.FC = () => {
       value: lang.toLowerCase(),
       label: lang.charAt(0).toUpperCase() + lang.slice(1)
     }))
-    .filter(lang => !excludedLanguages.includes(lang.label)); // Filter out excluded languages
+    .filter(lang => isMentraUser || !excludedLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
 
   const targetLanguageOptions = createGroupedOptions(targetLanguageFlat);
 
@@ -149,10 +157,6 @@ export const TranslationTranscript: React.FC = () => {
     }
     return 'en'; // fallback to English if not found
   };
-
-  const transcriptRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const { getHeaders, getAuthQuery, isAuthenticated, isLoading, token } = useAuthenticatedApi();
 
   // Check if splash should be shown based on 10-second timer
   useEffect(() => {
