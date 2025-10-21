@@ -11,7 +11,7 @@
       "key": "transcribe_language",
       "type": "select_with_search",
       "label": "Transcribe language",
-      "defaultValue": "Chinese (Mandarin)",
+      "defaultValue": "English",
       "options": [
         { "label": "English", "value": "English" },
         { "label": "Chinese (Mandarin)", "value": "Chinese (Mandarin)" },
@@ -103,7 +103,7 @@
       "key": "translate_language",
       "type": "select_with_search",
       "label": "Translate to",
-      "defaultValue": "English",
+      "defaultValue": "Chinese",
       "options": [
         { "label": "English", "value": "English" },
         { "label": "Chinese (Hanzi)", "value": "Chinese (Hanzi)" },

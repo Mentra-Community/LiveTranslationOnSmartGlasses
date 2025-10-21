@@ -6,8 +6,12 @@ import { terminal } from 'virtual:terminal';
 
 // Use environment variable for API URL, fallback to relative URLs in production
 // Check window location to determine if we're in production
-const isProduction = window.location.hostname.includes('mentra.glass') || 
+const isProduction = window.location.hostname.includes('mentra.glass') ||
                     window.location.hostname.includes('onporter.run');
+
+// Allow override via environment variable
+terminal.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
+terminal.log('isProduction:', isProduction);
 
 const API_BASE_URL = isProduction 
   ? 'https://translation-api.mentra.glass'
@@ -66,6 +70,37 @@ const api = {
     }
   },
 
+
+  // Update language settings
+  async updateLanguageSettings(languagePair: Partial<LanguagePair>, headers?: HeadersInit): Promise<LanguagePair> {
+    try {
+      const url = `${API_BASE_URL}/api/language-settings`;
+      terminal.log('Updating language settings to:', languagePair);
+      terminal.log('Headers:', headers);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(headers || {}),
+        },
+        body: JSON.stringify(languagePair),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        terminal.error(`API error ${response.status}:`, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+      
+      const updatedPair = await response.json();
+      terminal.log('Language settings updated successfully:', updatedPair);
+      return updatedPair;
+    } catch (error) {
+      terminal.error('Error updating language settings:', error);
+      throw error;
+    }
+  },
+  
   // Events (SSE) endpoints
   events: {
     connect: (): EventSource | null => {
