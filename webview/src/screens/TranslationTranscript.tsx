@@ -48,14 +48,19 @@ export const TranslationTranscript: React.FC = () => {
     "Japanese", "Korean", "Portuguese", "Russian", "Arabic"
   ];
 
-  // Hardcoded list of languages to EXCLUDE from dropdowns
-  const excludedLanguages = [
+  // Hardcoded list of languages to EXCLUDE from source dropdown
+  const excludedSourceLanguages = [
     "Azerburmeseaijani"
-    ,"Hebrew"
-    ,"Arabic"  
-    ,"Vietnamese"
-    ,"Persian"
-    ,"Thai"
+  ];
+
+  // Hardcoded list of languages to EXCLUDE from target dropdown
+  const excludedTargetLanguages = [
+    "Azerburmeseaijani",
+    "Hebrew",
+    "Arabic",
+    "Vietnamese",
+    "Persian",
+    "Thai"
   ];
 
   // Helper function to create grouped and sorted options
@@ -121,7 +126,7 @@ export const TranslationTranscript: React.FC = () => {
         label: langName.charAt(0).toUpperCase() + langName.slice(1)
       };
     })
-    .filter(lang => isMentraUser || !excludedLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
+    .filter(lang => isMentraUser || !excludedSourceLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
 
   const sourceLanguageOptions = createGroupedOptions(sourceLanguageFlat);
 
@@ -130,7 +135,7 @@ export const TranslationTranscript: React.FC = () => {
       value: lang.toLowerCase(),
       label: lang.charAt(0).toUpperCase() + lang.slice(1)
     }))
-    .filter(lang => isMentraUser || !excludedLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
+    .filter(lang => isMentraUser || !excludedTargetLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
 
   const targetLanguageOptions = createGroupedOptions(targetLanguageFlat);
 
@@ -294,6 +299,17 @@ export const TranslationTranscript: React.FC = () => {
     } finally {
       setIsLanguageLoading(false);
     }
+  };
+
+  // Check if swap button should be disabled
+  const isSwapDisabled = () => {
+    // Users with "mentra" in their ID can swap any languages
+    if (isMentraUser) return false;
+
+    // For non-Mentra users: disable if either language would be invalid in the swapped position
+    const sourceWouldBeInvalid = excludedTargetLanguages.includes(languagePair.from);
+    const targetWouldBeInvalid = excludedTargetLanguages.includes(languagePair.to);
+    return sourceWouldBeInvalid || targetWouldBeInvalid;
   };
 
   const swapLanguages = async () => {
@@ -880,9 +896,9 @@ export const TranslationTranscript: React.FC = () => {
 
                 <button
                   onClick={swapLanguages}
-                  disabled={isLanguageLoading}
+                  disabled={isLanguageLoading || isSwapDisabled()}
                   className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg hover:shadow-lg transition-all transform active:scale-95 mt-5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 tap-highlight-transparent [-webkit-tap-highlight-color:transparent]"
-                  title="Swap languages"
+                  title={isSwapDisabled() ? "Cannot swap: one or more languages not available as target" : "Swap languages"}
                 >
                   <ArrowLeftRight className="w-4 h-4" />
                 </button>
