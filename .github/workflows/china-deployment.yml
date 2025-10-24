@@ -13,6 +13,7 @@ jobs:
       ACR_INSTANCE_ID: cri-h675v46p9lj694l6
       ACR_REGION_ID: cn-shenzhen
       ACR_PUBLIC_DOMAIN: mentra-acr-cnsz-a-registry.cn-shenzhen.cr.aliyuncs.com
+      AUGMENTOS_API_KEY: testing
 
     steps:
       # 1. Checkout source code
@@ -74,3 +75,9 @@ jobs:
           tags: |
             ${{ env.ACR_PUBLIC_DOMAIN }}/mentra-dev/live_translation:${{ steps.vars.outputs.sha_short }}
             ${{ env.ACR_PUBLIC_DOMAIN }}/mentra-dev/live_translation:latest
+
+      - name: Replace AUGMENTOS_API_KEY
+        run: |
+          envsubst < eci-autoscaling-config.yml > final-deployment.yml
+          cat final-deployment.yml
+        shell: bash
