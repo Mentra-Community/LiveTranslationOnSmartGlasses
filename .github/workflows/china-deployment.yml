@@ -83,30 +83,36 @@ jobs:
 
       - name: Create new Scaling Configuration and trigger Instance Refresh
         run: |
-          # Identify your scaling group by name
+          set -e
           SCALING_GROUP_NAME="mentra-dev-ecisg-livetranslation"
 
-          # Fetch scaling group ID
-          SCALING_GROUP_ID=$(aliyun ess DescribeScalingGroups \
+          # Fetch raw Scaling Groups JSON for debugging
+          RAW_JSON=$(aliyun ess DescribeScalingGroups \
             --RegionId $ACR_REGION_ID \
-            --ScalingGroupName $SCALING_GROUP_NAME \
-            | jq -r '.ScalingGroups[0].ScalingGroupId')
+            --ScalingGroupName $SCALING_GROUP_NAME)
+          echo "=== Scaling Groups Raw JSON ==="
+          echo "$RAW_JSON"
 
+          # Extract Scaling Group ID safely
+          SCALING_GROUP_ID=$(echo "$RAW_JSON" | jq -r '.ScalingGroups.ScalingGroup[0].ScalingGroupId')
           echo "Scaling Group ID: $SCALING_GROUP_ID"
 
-          # Create a new scaling configuration with version tag (immutable)
+          # Create a new scaling configuration (versioned)
           NEW_CONFIG_NAME="deploymentConfiguration_${{ steps.vars.outputs.sha_short }}"
-          CONFIG_ID=$(aliyun ess CreateScalingConfiguration \
+          CONFIG_JSON=$(aliyun ess CreateScalingConfiguration \
             --RegionId $ACR_REGION_ID \
             --ScalingGroupId $SCALING_GROUP_ID \
             --ScalingConfigurationName $NEW_CONFIG_NAME \
-            --ContainerGroupYaml "$(cat final-deployment.yml)" \
-            | jq -r '.ScalingConfigurationId')
+            --ContainerGroupYaml "$(cat final-deployment.yml)")
+          
+          echo "=== CreateScalingConfiguration JSON ==="
+          echo "$CONFIG_JSON"
 
+          CONFIG_ID=$(echo "$CONFIG_JSON" | jq -r '.ScalingConfigurationId')
           echo "New Scaling Configuration ID: $CONFIG_ID"
 
-          # Create an Instance Refresh task for a rolling update
-          REFRESH_ID=$(aliyun ess CreateInstanceRefresh \
+          # Trigger Instance Refresh
+          REFRESH_JSON=$(aliyun ess CreateInstanceRefresh \
             --RegionId $ACR_REGION_ID \
             --ScalingGroupId $SCALING_GROUP_ID \
             --ScalingConfigurationId $CONFIG_ID \
@@ -114,7 +120,10 @@ jobs:
             --Preferences '{
               "MinHealthyPercentage": 50,
               "InstanceWarmup": 60
-            }' \
-            | jq -r '.InstanceRefreshId')
+            }')
+          
+          echo "=== Instance Refresh JSON ==="
+          echo "$REFRESH_JSON"
 
+          REFRESH_ID=$(echo "$REFRESH_JSON" | jq -r '.InstanceRefreshId')
           echo "Started Instance Refresh Task: $REFRESH_ID"
