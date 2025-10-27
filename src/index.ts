@@ -528,23 +528,34 @@ export class LiveTranslationApp extends AppServer {
       console.log("Right here: -> ", {originalText})
       console.log("Right here: -> ", {newText})
       // Add the translation entry with the actual detected languages
-      const entry = conversationManager.addTranslation(
+      const result = conversationManager.addTranslation(
         originalText,
         newText,
         detectedSourceLang,
         detectedTargetLang,
         isFinal
       );
-      
-      // Broadcast to SSE clients if entry was created
-      if (entry) {
-        console.log(`[Translation] Broadcasting to SSE clients for user ${userId}:`, {
-          id: entry.id,
-          originalLang: entry.originalLanguage,
-          translatedLang: entry.translatedLanguage,
-          isFinal: entry.isFinal
+
+      // If a previous entry was finalized due to language change, broadcast it first
+      if (result.finalizedEntry) {
+        console.log(`[Translation] Language changed - finalizing previous entry:`, {
+          id: result.finalizedEntry.id,
+          originalLang: result.finalizedEntry.originalLanguage,
+          translatedLang: result.finalizedEntry.translatedLanguage,
+          isFinal: result.finalizedEntry.isFinal
         });
-        this.broadcastToUserSSEClients(userId, { type: 'translation', data: entry });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.finalizedEntry });
+      }
+
+      // Broadcast to SSE clients if entry was created
+      if (result.entry) {
+        console.log(`[Translation] Broadcasting to SSE clients for user ${userId}:`, {
+          id: result.entry.id,
+          originalLang: result.entry.originalLanguage,
+          translatedLang: result.entry.translatedLanguage,
+          isFinal: result.entry.isFinal
+        });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.entry });
       }
     }
 
