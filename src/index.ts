@@ -474,25 +474,42 @@ export class LiveTranslationApp extends AppServer {
     // Get the display mode from settings or use default
     const displayMode = userDisplayModes.get(userId) || defaultSettings.displayMode;
 
-    const shouldDisplayOnGlasses = translationData.transcribeLanguage?.split('-')[0] === sourceLocale.split('-')[0];
-    // Determine what text to show on glasses based on target language preference
-    let glassesDisplayText = newText;
-    if (translationData.didTranslate) {
-      // If translation occurred, check if we should show original or translated text
-      const detectedTargetLocale = translationData.translateLanguage || '';
-      const userTargetLocale = languageToLocale(targetLanguage);
-      
-      // Show the text that matches the user's target language preference
-      if (detectedTargetLocale.split('-')[0] === userTargetLocale.split('-')[0]) {
-        // The translated text matches user's target language - show translated text 
-        glassesDisplayText = newText;
-      } else {
-        
-        // The translated text doesn't match user's target language - show original text
-        glassesDisplayText = ""
-        
+    // Check if the spoken language (transcribeLanguage) matches the user's target language
+    const spokenLocale = translationData.transcribeLanguage?.split('-')[0] || '';
+    const userTargetLocale = targetLocale.split('-')[0];
+
+    // If target language was spoken, skip glasses display entirely (don't overwrite existing text)
+    if (spokenLocale === userTargetLocale) {
+      console.log(`[Session ${sessionId}]: Target language spoken - skipping glasses display to preserve existing text`);
+
+      // Still process for webview (conversation manager)
+      const conversationManager = this.userConversationManagers.get(userId);
+      const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
+      const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
+      const originalText = translationData.originalText || '';
+
+      if (conversationManager && translationData.didTranslate) {
+        const result = conversationManager.addTranslation(
+          originalText,
+          newText,
+          detectedSourceLang,
+          detectedTargetLang,
+          isFinal
+        );
+
+        if (result.finalizedEntry) {
+          this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.finalizedEntry });
+        }
+        if (result.entry) {
+          this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.entry });
+        }
       }
+
+      return; // Exit early - don't update glasses display
     }
+
+    // Determine what text to show on glasses (source language was spoken or unknown language)
+    let glassesDisplayText = newText;
     
     // For glasses display: only show translations when in 'translations' mode
     if (displayMode === 'translations' && !translationData.didTranslate) {
@@ -516,35 +533,47 @@ export class LiveTranslationApp extends AppServer {
 
     // Add translation to conversation manager for webview (bidirectional)
     const conversationManager = this.userConversationManagers.get(userId);
+
+    // Determine the actual source and target languages from the translation data
+    const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
+    const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
+    const originalText = translationData.originalText || '';
+
     if (conversationManager && translationData.didTranslate) {
-      // Determine the actual source and target languages from the translation data
-      const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
-      const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
-      const originalText = translationData.originalText || '';
-      
       console.log(`[Language Detection] Detected: ${translationData.transcribeLanguage} (${detectedSourceLang}) → ${translationData.translateLanguage} (${detectedTargetLang})`);
       console.log(`[Language Detection] originalText: "${originalText}", translatedText: "${newText}"`);
-      
+
       console.log("Right here: -> ", {originalText})
       console.log("Right here: -> ", {newText})
       // Add the translation entry with the actual detected languages
-      const entry = conversationManager.addTranslation(
+      const result = conversationManager.addTranslation(
         originalText,
         newText,
         detectedSourceLang,
         detectedTargetLang,
         isFinal
       );
-      
-      // Broadcast to SSE clients if entry was created
-      if (entry) {
-        console.log(`[Translation] Broadcasting to SSE clients for user ${userId}:`, {
-          id: entry.id,
-          originalLang: entry.originalLanguage,
-          translatedLang: entry.translatedLanguage,
-          isFinal: entry.isFinal
+
+      // If a previous entry was finalized due to language change, broadcast it first
+      if (result.finalizedEntry) {
+        console.log(`[Translation] Language changed - finalizing previous entry:`, {
+          id: result.finalizedEntry.id,
+          originalLang: result.finalizedEntry.originalLanguage,
+          translatedLang: result.finalizedEntry.translatedLanguage,
+          isFinal: result.finalizedEntry.isFinal
         });
-        this.broadcastToUserSSEClients(userId, { type: 'translation', data: entry });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.finalizedEntry });
+      }
+
+      // Broadcast to SSE clients if entry was created
+      if (result.entry) {
+        console.log(`[Translation] Broadcasting to SSE clients for user ${userId}:`, {
+          id: result.entry.id,
+          originalLang: result.entry.originalLanguage,
+          translatedLang: result.entry.translatedLanguage,
+          isFinal: result.entry.isFinal
+        });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.entry });
       }
     }
 

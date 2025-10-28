@@ -18,6 +18,7 @@ export class ConversationManager {
   private entries: Map<string, TranslationEntry> = new Map();
   private entryOrder: string[] = [];
   private currentInterimId: string | null = null;
+  private currentInterimLanguagePair: { from: string; to: string } | null = null;
   private entryCounter: number = 0;
   private maxEntries: number = 500;
   private languagePair: LanguagePair = { from: 'Unknown', to: 'Unknown' };
@@ -41,6 +42,7 @@ export class ConversationManager {
   /**
    * Add or update a translation entry
    * Returns the created/updated entry, or null if no entry was created
+   * Also returns a finalizedEntry if a previous interim entry was finalized due to language change
    */
   addTranslation(
     originalText: string,
@@ -48,11 +50,37 @@ export class ConversationManager {
     originalLanguage: string,
     translatedLanguage: string,
     isFinal: boolean
-  ): TranslationEntry | null {
-    let entry: TranslationEntry;
+  ): { entry: TranslationEntry | null; finalizedEntry?: TranslationEntry } {
+    let entry: TranslationEntry | null = null;
+    let finalizedEntry: TranslationEntry | undefined = undefined;
 
-    if (!isFinal && this.currentInterimId) {
-      // Update existing interim entry
+    // Check if language pair has changed
+    const currentLanguagePair = { from: originalLanguage, to: translatedLanguage };
+    const languageChanged = this.currentInterimLanguagePair && (
+      this.currentInterimLanguagePair.from !== currentLanguagePair.from ||
+      this.currentInterimLanguagePair.to !== currentLanguagePair.to
+    );
+
+    // If language changed, finalize the previous interim entry and start a new one
+    if (languageChanged && this.currentInterimId) {
+      const previousEntry = this.entries.get(this.currentInterimId);
+      if (previousEntry) {
+        // Finalize the previous entry
+        const finalized = {
+          ...previousEntry,
+          isFinal: true,
+          isNewUtterance: true
+        };
+        this.entries.set(this.currentInterimId, finalized);
+        finalizedEntry = finalized;
+      }
+      // Reset to allow new entry creation
+      this.currentInterimId = null;
+      this.currentInterimLanguagePair = null;
+    }
+
+    if (!isFinal && this.currentInterimId && !languageChanged) {
+      // Update existing interim entry (same language)
       entry = {
         id: this.currentInterimId,
         timestamp: Date.now(),
@@ -63,8 +91,9 @@ export class ConversationManager {
         isFinal: false
       };
       this.entries.set(this.currentInterimId, entry);
-    } else if (isFinal && this.currentInterimId) {
-      // Convert interim to final
+      this.currentInterimLanguagePair = currentLanguagePair;
+    } else if (isFinal && this.currentInterimId && !languageChanged) {
+      // Convert interim to final (same language)
       entry = {
         id: this.currentInterimId,
         timestamp: Date.now(),
@@ -77,8 +106,9 @@ export class ConversationManager {
       };
       this.entries.set(this.currentInterimId, entry);
       this.currentInterimId = null;
+      this.currentInterimLanguagePair = null;
     } else {
-      // Create new entry
+      // Create new entry (new utterance or language changed)
       const id = `entry-${++this.entryCounter}`;
       entry = {
         id,
@@ -90,12 +120,13 @@ export class ConversationManager {
         isFinal,
         isNewUtterance: isFinal
       };
-      
+
       this.entries.set(id, entry);
       this.entryOrder.push(id);
-      
+
       if (!isFinal) {
         this.currentInterimId = id;
+        this.currentInterimLanguagePair = currentLanguagePair;
       }
 
       // Maintain max entries limit
@@ -107,7 +138,7 @@ export class ConversationManager {
       }
     }
 
-    return entry;
+    return { entry, finalizedEntry };
   }
 
   /**
@@ -126,6 +157,7 @@ export class ConversationManager {
     this.entries.clear();
     this.entryOrder = [];
     this.currentInterimId = null;
+    this.currentInterimLanguagePair = null;
     this.entryCounter = 0;
   }
 

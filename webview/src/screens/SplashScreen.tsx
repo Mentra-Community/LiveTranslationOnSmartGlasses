@@ -10,7 +10,7 @@ function SplashScreen() {
         <div className='flex-1 flex justify-center items-center'>
             <div className="flex flex-row justify-center items-end scale-45 sm:scale-50 md:scale-75 lg:scale-100">
                 <motion.div
-                className='-mr-6 '
+                className='-mr-6 -mb-2'
                 initial={{ scale: 0, rotate: -180, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 transition={{ duration: 1.0, ease: [0.9, 0.1, 0.3, 1], delay: 0.2 }}
@@ -18,7 +18,7 @@ function SplashScreen() {
                   <SquareIcon className='w-24 h-24' />
                 </motion.div>
                 <motion.div
-                className='-mr-10'
+                className='-mr-7'
                 initial={{ x: -100, y: -100, opacity: 0 }}
                 animate={{ x: 0, y: 0, opacity: 1 }}
                 transition={{ duration: 1.3, ease: [0.9, 0.1, 0.3, 1] }}
