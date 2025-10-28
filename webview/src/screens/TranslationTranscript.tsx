@@ -166,6 +166,8 @@ export const TranslationTranscript: React.FC = () => {
   // Check if splash should be shown based on 10-second timer
   useEffect(() => {
     const SPLASH_INTERVAL = 20 * 60 * 1000; // 20 minutes in milliseconds
+    // const SPLASH_INTERVAL = 1000; // 20 minutes in milliseconds
+
 
     const SPLASH_DURATION = 3000; // 3 seconds
     const lastSplashTime = localStorage.getItem('lastSplashTime');

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-     viewBox="0 24.55 22.075 19.88"
+     viewBox="0 0 22.075 22.075"
      width="200" height="200"
      preserveAspectRatio="xMidYMid meet">
   <defs>
@@ -8,5 +8,5 @@
       <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
     </linearGradient>
   </defs>
-  <path d="M22.075 24.55H0v19.88h22.075V24.55z" fill="url(#bumGradient)"/>
+  <path d="M22.075 0H0v22.075h22.075V0z" fill="url(#bumGradient)"/>
 </svg>
