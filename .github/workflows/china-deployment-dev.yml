@@ -23,7 +23,7 @@ jobs:
         run: |
           cat > env.yaml << 'EOL'
           - name: PACKAGE_NAME
-            value: "com.augmentos.livetranslation"
+            value: "com.mentra.translation"
           - name: DEPLOYMENT_REGION
             value: "china"
           - name: AUGMENTOS_API_KEY
