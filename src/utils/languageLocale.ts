@@ -1,5 +1,7 @@
 export function languageToLocale(localeString: string): string {
     switch (localeString) {
+        case "All Languages":
+            return "all";
         case "Afrikaans":
         case "Afrikaans (South Africa)":
             return "af-ZA";
@@ -385,9 +387,14 @@ export function languageToLocale(localeString: string): string {
  * Convert a locale code (like "ko" or "ko-KR") to a language name (like "Korean")
  */
 export function localeToLanguage(localeCode: string): string {
+    // Handle "all" special case
+    if (localeCode === 'all') {
+        return 'All Languages';
+    }
+
     // Extract just the language part (before the hyphen) if it's a full locale
     const languageCode = localeCode.split('-')[0].toLowerCase();
-    
+
     // Map of locale codes to language names
     const localeMap: { [key: string]: string } = {
         'af': 'Afrikaans',

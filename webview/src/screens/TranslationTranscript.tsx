@@ -118,15 +118,22 @@ export const TranslationTranscript: React.FC = () => {
   };
 
   // Create dropdown options from languages
-  const sourceLanguageFlat = Object.entries(languages as any)
-    .map(([code, lang]) => {
-      const langName = Object.values((lang as any).source_language)[0] as string;
-      return {
-        value: code,
-        label: langName.charAt(0).toUpperCase() + langName.slice(1)
-      };
-    })
-    .filter(lang => isMentraUser || !excludedSourceLanguages.includes(lang.label)); // Only filter if NOT a Mentra user
+  const sourceLanguageFlat = [
+    // Add "All Languages" as the first option
+    {
+      value: 'all',
+      label: 'All Languages'
+    },
+    ...Object.entries(languages as any)
+      .map(([code, lang]) => {
+        const langName = Object.values((lang as any).source_language)[0] as string;
+        return {
+          value: code,
+          label: langName.charAt(0).toUpperCase() + langName.slice(1)
+        };
+      })
+      .filter(lang => isMentraUser || !excludedSourceLanguages.includes(lang.label)) // Only filter if NOT a Mentra user
+  ];
 
   const sourceLanguageOptions = createGroupedOptions(sourceLanguageFlat);
 
@@ -149,6 +156,9 @@ export const TranslationTranscript: React.FC = () => {
   // Helper function to convert display name back to language code for dropdown
   const getLanguageCodeFromDisplayName = (displayName: string): string => {
     // Handle special cases
+    if (displayName === 'All Languages') {
+      return 'all';
+    }
     if (displayName === 'Unknown' || displayName === 'Pick a language') {
       return 'en'; // Default to English
     }
@@ -213,6 +223,22 @@ export const TranslationTranscript: React.FC = () => {
   }, []);
 
   const handleAvailableTargetLang = (lang: string) => {
+    // Special case: if "All Languages" is selected, show ALL possible target languages
+    if (lang === 'all') {
+      // Collect all unique target languages from all source languages
+      const allTargets = new Set<string>();
+      Object.values(languages as any).forEach((langEntry: any) => {
+        langEntry.supported_target_languages.forEach((targetObj: any) => {
+          const targetLang = Object.values(targetObj)[0] as string;
+          allTargets.add(targetLang);
+        });
+      });
+
+      const targets = Array.from(allTargets);
+      setTargetLangAvailable(targets);
+      return targets;
+    }
+
     const langEntry = (languages as any)[lang];
     if (!langEntry) return [];
 
@@ -231,16 +257,22 @@ export const TranslationTranscript: React.FC = () => {
     setIsLanguageLoading(true);
     handleAvailableTargetLang(newSourceLangCode);
 
-    // Convert language code to display name for backend
-    const langEntry = (languages as any)[newSourceLangCode];
-    const newSourceLangDisplayName = langEntry ?
-      Object.values(langEntry.source_language)[0] as string :
-      newSourceLangCode;
+    // Special case: if "all" is selected, send "All Languages"
+    let formattedSourceLang: string;
+    if (newSourceLangCode === 'all') {
+      formattedSourceLang = 'All Languages';
+    } else {
+      // Convert language code to display name for backend
+      const langEntry = (languages as any)[newSourceLangCode];
+      const newSourceLangDisplayName = langEntry ?
+        Object.values(langEntry.source_language)[0] as string :
+        newSourceLangCode;
 
-    // Capitalize the first letter to match backend expectations
-    const formattedSourceLang = typeof newSourceLangDisplayName === 'string' ?
-      newSourceLangDisplayName.charAt(0).toUpperCase() + newSourceLangDisplayName.slice(1) :
-      newSourceLangCode;
+      // Capitalize the first letter to match backend expectations
+      formattedSourceLang = typeof newSourceLangDisplayName === 'string' ?
+        newSourceLangDisplayName.charAt(0).toUpperCase() + newSourceLangDisplayName.slice(1) :
+        newSourceLangCode;
+    }
 
     terminal.log('Source language changed to:', formattedSourceLang);
 

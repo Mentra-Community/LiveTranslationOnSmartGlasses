@@ -77,6 +77,8 @@ export class LiveTranslationApp extends AppServer {
   private userConversationManagers = new Map<string, ConversationManager>();
   // SSE clients tracking per user
   private userSSEClients = new Map<string, Set<Response>>();
+  // Track active translation subscription cleanup functions per user
+  private userTranslationCleanups = new Map<string, () => void>();
 
   constructor() {
     super({
@@ -171,12 +173,21 @@ export class LiveTranslationApp extends AppServer {
       userConfidenceHeuristics.set(userId, defaultSettings.confidenceHeuristic as ConfidenceHeuristic);
 
       // Setup handler for translation data
-      const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
-        this.handleTranslation(session, sessionId, userId, data);
-        // I don't like how ConversationManager is an event emitter, so we handle the translation directly here like.
-        // const conversationManager = this.userConversationManagers.get(userId);
-        // conversationManager.handleTranslation(data);
-      });
+      let cleanup: () => void;
+      if (sourceLocale === 'all') {
+        // For "All Languages", use universal translation stream
+        const streamId = `translation:all-to-${targetLocale}` as any;
+        cleanup = session.on(streamId, (data: TranslationData) => {
+          this.handleTranslation(session, sessionId, userId, data);
+        });
+      } else {
+        cleanup = session.events.ontranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
+          this.handleTranslation(session, sessionId, userId, data);
+          // I don't like how ConversationManager is an event emitter, so we handle the translation directly here like.
+          // const conversationManager = this.userConversationManagers.get(userId);
+          // conversationManager.handleTranslation(data);
+        });
+      }
       
       // Register cleanup handler
       this.addCleanupHandler(cleanup);
@@ -348,19 +359,42 @@ export class LiveTranslationApp extends AppServer {
 
       // Setup handler for translation data
       console.log(`Setting up translation handlers for session ${sessionId} (${sourceLocale}->${targetLocale})`);
-      
+
+      // Clean up previous translation subscription if it exists
+      const previousCleanup = this.userTranslationCleanups.get(userId);
+      if (previousCleanup) {
+        console.log(`[Cleanup] Removing previous translation subscription for user ${userId}`);
+        previousCleanup();
+        this.userTranslationCleanups.delete(userId);
+      }
+
       // Create handler for the language pair
       const translationHandler = (data: TranslationData) => {
         this.handleTranslation(session, sessionId, userId, data);
       };
 
-      // Subscribe to language-specific translation
-      const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, translationHandler);
-      
-      // Register cleanup handler
+      // Subscribe to translation stream
+      // If source is "all", use universal translation (any language -> target)
+      // Otherwise use language-specific translation (source -> target)
+      let cleanup: () => void;
+      if (sourceLocale === 'all') {
+        // For "All Languages", subscribe to the universal translation stream
+        // This uses the format "translation:all-to-{targetLocale}"
+        const streamId = `translation:all-to-${targetLocale}` as any;
+        cleanup = session.on(streamId, translationHandler);
+      } else {
+        // For specific language pairs, use the standard method
+        cleanup = session.events.ontranslationForLanguage(sourceLocale, targetLocale, translationHandler);
+      }
+
+      // Store cleanup function for this user so we can clean it up on next language change
+      this.userTranslationCleanups.set(userId, cleanup);
+
+      // Register cleanup handler for session end
       this.addCleanupHandler(cleanup);
-      
-      console.log(`Subscribed to translations from ${sourceLocale} to ${targetLocale} for user ${userId}`);
+
+      const subscriptionType = sourceLocale === 'all' ? 'any language' : sourceLocale;
+      console.log(`Subscribed to translations from ${subscriptionType} to ${targetLocale} for user ${userId}`);
       
     } catch (error) {
       console.error(`Error applying settings for user ${userId}:`, error);
@@ -396,10 +430,17 @@ export class LiveTranslationApp extends AppServer {
 
     // WIPE EVERYTHING - Complete cleanup of all user data
     console.log(`🧹 Wiping all data for user ${userId} (session ${sessionId})`);
-    
+
+    // Clear translation subscription cleanup function
+    const translationCleanup = this.userTranslationCleanups.get(userId);
+    if (translationCleanup) {
+      translationCleanup();
+      this.userTranslationCleanups.delete(userId);
+    }
+
     // Clear transcript processor
     userTranscriptProcessors.delete(userId);
-    
+
     // Clear language settings
     userSourceLanguages.delete(userId);
     userTargetLanguages.delete(userId);
