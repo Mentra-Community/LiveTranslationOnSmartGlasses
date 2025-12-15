@@ -20,9 +20,9 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'translation-app.ngrok.app', 'webview-11555-4a24a192-lcc2p59i.onporter.run', 'general.dev.tpa.ngrok.app', 'translation-12937-4a24a192-qj9ctmy5.onporter.run'],
+    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'translation-app.ngrok.app', 'webview-11555-4a24a192-lcc2p59i.onporter.run', 'general.dev.tpa.ngrok.app', 'translation-12937-4a24a192-qj9ctmy5.onporter.run', 'webview-12937-4a24a192-vtd3w0fk.onporter.run'],
     cors: true,
   },  preview: {
-    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'webview-10410-4a24a192-ojqv695t.onporter.run', 'webview-11555-4a24a192-lcc2p59i.onporter.run', 'general.dev.tpa.ngrok.app', 'translation-12937-4a24a192-qj9ctmy5.onporter.run'],
+    allowedHosts: ['live-translation.ngrok.dev', 'isaiah-webview.ngrok.app', 'webview.ngrok.dev', 'localhost', 'translation.mentra.glass', 'webview-10410-4a24a192-ojqv695t.onporter.run', 'webview-11555-4a24a192-lcc2p59i.onporter.run', 'general.dev.tpa.ngrok.app', 'translation-12937-4a24a192-qj9ctmy5.onporter.run', 'webview-12937-4a24a192-vtd3w0fk.onporter.run'],
   },
 })
