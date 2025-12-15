@@ -2,11 +2,5 @@
      viewBox="0 0 22.075 22.075"
      width="200" height="200"
      preserveAspectRatio="xMidYMid meet">
-  <defs>
-    <linearGradient id="bumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <path d="M22.075 0H0v22.075h22.075V0z" fill="url(#bumGradient)"/>
+  <path d="M22.075 0H0v22.075h22.075V0z" fill="#216FF0"/>
 </svg>
