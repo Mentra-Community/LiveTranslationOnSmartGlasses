@@ -14,7 +14,7 @@ terminal.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
 terminal.log('isProduction:', isProduction);
 
 const API_BASE_URL = isProduction 
-  ? 'https://translation-api.mentra.glass'
+  ? 'https://translation-12937-4a24a192-qj9ctmy5.onporter.run'
   : (import.meta.env.VITE_API_URL || '');
 
 terminal.log('API_BASE_URL:', API_BASE_URL);
