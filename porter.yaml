@@ -27,4 +27,4 @@ services:
   env:
     NODE_ENV: production
     HOST: "0.0.0.0"
-    VITE_API_URL: "https://translation-api.mentra.glass"
+    VITE_API_URL: "https://translation-12937-4a24a192-qj9ctmy5.onporter.run"
