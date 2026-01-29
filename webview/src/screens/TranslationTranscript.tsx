@@ -69,6 +69,8 @@ export const TranslationTranscript: React.FC = () => {
     "Vietnamese",
     "Persian",
     "Thai",
+    "Tamil",
+    "Norwegian",
   ];
 
   // Helper function to create grouped and sorted options
@@ -962,7 +964,7 @@ export const TranslationTranscript: React.FC = () => {
                             },
                             "& .MuiSelect-select": {
                               padding: "10px 14px",
-                              fontSize: "12px",
+                              fontSize: "16px",
                               fontWeight: "500",
                               color: "var(--secondary_foreground)",
                               minWidth: 0,
@@ -986,7 +988,7 @@ export const TranslationTranscript: React.FC = () => {
                                 minWidth: "100%",
                                 width: "auto",
                                 "& .MuiMenuItem-root": {
-                                  fontSize: "0.6875rem",
+                                  fontSize: "1rem",
                                   fontWeight: "400",
                                   color: "var(--secondary_foreground)",
                                   padding: "12px 16px",
@@ -1003,7 +1005,7 @@ export const TranslationTranscript: React.FC = () => {
                                 },
                                 "& .MuiListSubheader-root": {
                                   color: "black",
-                                  fontSize: "0.75rem",
+                                  fontSize: "0.875rem",
                                   fontWeight: "600",
                                   textTransform: "uppercase",
                                   letterSpacing: "0.05em",
@@ -1101,7 +1103,7 @@ export const TranslationTranscript: React.FC = () => {
                             },
                             "& .MuiSelect-select": {
                               padding: "10px 14px",
-                              fontSize: "12px",
+                              fontSize: "16px",
                               fontWeight: "500",
                               color: "var(--secondary_foreground)",
                               minWidth: 0,
@@ -1126,7 +1128,7 @@ export const TranslationTranscript: React.FC = () => {
                                 minWidth: "100%",
                                 width: "auto",
                                 "& .MuiMenuItem-root": {
-                                  fontSize: "0.6875rem",
+                                  fontSize: "1rem",
                                   fontWeight: "400",
                                   color: "#0A0A0A",
                                   padding: "12px 16px",
@@ -1142,7 +1144,7 @@ export const TranslationTranscript: React.FC = () => {
                                 },
                                 "& .MuiListSubheader-root": {
                                   color: "black",
-                                  fontSize: "0.75rem",
+                                  fontSize: "0.875rem",
                                   fontWeight: "600",
                                   textTransform: "uppercase",
                                   letterSpacing: "0.05em",

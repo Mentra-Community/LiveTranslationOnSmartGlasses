@@ -423,6 +423,7 @@ export function localeToLanguage(localeCode: string): string {
         'gu': 'Gujarati',
         'ha': 'Hausa',
         'he': 'Hebrew',
+        'iw': 'Hebrew',  // Legacy code for Hebrew (used by Java/Android)
         'hi': 'Hindi',
         'hr': 'Croatian',
         'hu': 'Hungarian',

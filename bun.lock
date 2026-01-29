@@ -1,11 +1,11 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@augmentos/livetranslation",
       "dependencies": {
-        "@mentra/livetranslation": ".",
-        "@mentra/sdk": "^2.1.27",
+        "@mentra/sdk": "^2.1.29",
         "@node-rs/jieba": "^2.0.1",
         "@types/express": "^5.0.1",
         "@types/node": "^22.13.14",
@@ -95,9 +95,7 @@
 
     "@logtail/types": ["@logtail/types@0.5.3", "", {}, "sha512-5uKf1xQ7wRqSW0lYIwDpXdXcFHxPKH5EM22MoEjwTpd8suymOYuEdx9qCCHCYey4uOhPq7x6OkZf86bTO83JsA=="],
 
-    "@mentra/livetranslation": ["@mentra/livetranslation@file:", { "dependencies": { "@mentra/sdk": "2.1.26", "@node-rs/jieba": "^2.0.1", "@types/express": "^5.0.1", "@types/node": "^22.13.14", "@types/ws": "^8.18.0", "cookie-parser": "^1.4.7", "express": "^4.21.2", "mongoose": "^8.18.2", "path": "^0.12.7", "pinyin-pro": "^3.26.0", "ws": "^8.18.1" }, "devDependencies": { "typescript": "^5.0.0" } }],
-
-    "@mentra/sdk": ["@mentra/sdk@2.1.27", "", { "dependencies": { "@logtail/pino": "^0.5.4", "axios": "^1.8.1", "boxen": "^8.0.1", "chalk": "^5.6.2", "cookie-parser": "^1.4.7", "dotenv": "^16.4.0", "express": "^4.18.2", "jimp": "^1.6.0", "jsonwebtoken": "^8.5.1", "jsrsasign": "^11.1.0", "multer": "^2.0.1", "pino": "^9.6.0", "pino-pretty": "^13.0.0", "strip-ansi": "^7.1.2", "ws": "^8.18.2" }, "bin": { "mentra": "dist/cli.js" } }, "sha512-+6FezmUwOaqti3jFCGDwsa0byisFHcJXRvhEZmflvhEF2istXwZMTVun6Ou0UZlLktuxuWd0wuVXCWgvLlMgjQ=="],
+    "@mentra/sdk": ["@mentra/sdk@2.1.29", "", { "dependencies": { "@logtail/pino": "^0.5.4", "@mentra/types": "^1.0.0-beta.1", "axios": "^1.8.1", "boxen": "^8.0.1", "chalk": "^5.6.2", "cookie-parser": "^1.4.7", "dotenv": "^16.4.0", "express": "^4.18.2", "jimp": "^1.6.0", "jsonwebtoken": "^8.5.1", "jsrsasign": "^11.1.0", "multer": "^2.0.1", "pino": "^9.6.0", "pino-pretty": "^13.0.0", "strip-ansi": "^7.1.2", "ws": "^8.18.2" } }, "sha512-wbC+DnGc6WkoSqiqHZ9PJKyS0FPkbgyiBL9FngOH+f2+kiEjXCsstAY+5f3tNC0ym3QM1Wu3WLd1dSUZ+uXhJQ=="],
 
     "@mongodb-js/saslprep": ["@mongodb-js/saslprep@1.3.0", "", { "dependencies": { "sparse-bitfield": "^3.0.3" } }, "sha512-zlayKCsIjYb7/IdfqxorK5+xUMyi4vOKcFy10wKJYc63NSdKI8mNME+uJqfatkPmOSMMUiojrL58IePKBm3gvQ=="],
 
@@ -587,7 +585,7 @@
 
     "@jimp/core/mime": ["mime@3.0.0", "", { "bin": { "mime": "cli.js" } }, "sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A=="],
 
-    "@mentra/livetranslation/@mentra/sdk": ["@mentra/sdk@2.1.26", "", { "dependencies": { "@logtail/pino": "^0.5.4", "axios": "^1.8.1", "cookie-parser": "^1.4.7", "dotenv": "^16.4.0", "express": "^4.18.2", "jimp": "^1.6.0", "jsonwebtoken": "^8.5.1", "jsrsasign": "^11.1.0", "multer": "^2.0.1", "pino": "^9.6.0", "pino-pretty": "^13.0.0", "ws": "^8.18.2" }, "bin": { "mentra": "dist/cli.js" } }, "sha512-UdeG9rvcRblFeq2Cuh8ioKtQBmIrkIKgHiice5geya/fSXgWHN4m+Cdh5XCvkWK7MJaxoaIPQdzUScgrzcxVWA=="],
+    "@mentra/sdk/@mentra/types": ["@mentra/types@1.0.0-beta.2", "", { "bundled": true }, "sha512-yn0H7oYId8TSOGlSDmstds4nnmZbXyDncFy3FC1h4dWpDx6o4BmBehAJd2Otp9gr1bWwIL0yEp6JK60I8TBUGw=="],
 
     "ansi-align/string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "bun --watch src/index.ts & cd webview && bun run dev",
+    "dev:backend": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build:webview": "cd webview && bun install && bun run build",
     "start:webview": "cd webview && bun run dev:prod --host",
@@ -18,7 +19,7 @@
     "ghcr:release": "npm run ghcr:build && npm run ghcr:push"
   },
   "dependencies": {
-    "@mentra/sdk": "^2.1.27",
+    "@mentra/sdk": "^2.1.29",
     "@node-rs/jieba": "^2.0.1",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",
