@@ -693,7 +693,7 @@ export const TranslationTranscript: React.FC = () => {
   return (
     <div>
       {isAuthenticated && isUserIdAppSession ? (
-        <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 flex flex-col overflow-hidden">
+        <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 pt-[36px] flex flex-col overflow-hidden">
       {/* Splash Screen Overlay */}
       <AnimatePresence>
         {showSplash && (

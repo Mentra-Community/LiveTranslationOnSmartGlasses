@@ -4,7 +4,7 @@ import { Bird, Power } from 'lucide-react'
   // A screen to show when the TPA server is not connected
 function TpaConnectionError() {
   return (
-    <div className="relative h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden flex items-center justify-center p-4">
+    <div className="relative h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden flex items-center justify-center p-4 pt-[36px]">
         {/* Background words */}
         <div className="absolute inset-0 select-none pointer-events-none">
           <div className="absolute top-8 left-4 sm:left-16 text-slate-700 opacity-30 text-lg sm:text-2xl transform rotate-12">Hello</div>
