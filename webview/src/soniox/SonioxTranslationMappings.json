@@ -1,0 +1,1048 @@
+{
+  "models": [
+    {
+      "id": "stt-rt-preview",
+      "languages": [
+        {
+          "code": "af",
+          "name": "Afrikaans"
+        },
+        {
+          "code": "sq",
+          "name": "Albanian"
+        },
+        {
+          "code": "ar",
+          "name": "Arabic"
+        },
+        {
+          "code": "az",
+          "name": "AzerBurmeseaijani"
+        },
+        {
+          "code": "eu",
+          "name": "Basque"
+        },
+        {
+          "code": "be",
+          "name": "Belarusian"
+        },
+        {
+          "code": "bn",
+          "name": "Bengali"
+        },
+        {
+          "code": "bs",
+          "name": "Bosnian"
+        },
+        {
+          "code": "bg",
+          "name": "Bulgarian"
+        },
+        {
+          "code": "ca",
+          "name": "Catalan"
+        },
+        {
+          "code": "zh",
+          "name": "Chinese"
+        },
+        {
+          "code": "hr",
+          "name": "Croatian"
+        },
+        {
+          "code": "cs",
+          "name": "Czech"
+        },
+        {
+          "code": "da",
+          "name": "Danish"
+        },
+        {
+          "code": "nl",
+          "name": "Dutch"
+        },
+        {
+          "code": "en",
+          "name": "English"
+        },
+        {
+          "code": "et",
+          "name": "Estonian"
+        },
+        {
+          "code": "fi",
+          "name": "Finnish"
+        },
+        {
+          "code": "fr",
+          "name": "French"
+        },
+        {
+          "code": "gl",
+          "name": "Galician"
+        },
+        {
+          "code": "de",
+          "name": "German"
+        },
+        {
+          "code": "el",
+          "name": "Greek"
+        },
+        {
+          "code": "gu",
+          "name": "Gujarati"
+        },
+        {
+          "code": "he",
+          "name": "Hebrew"
+        },
+        {
+          "code": "hi",
+          "name": "Hindi"
+        },
+        {
+          "code": "hu",
+          "name": "Hungarian"
+        },
+        {
+          "code": "id",
+          "name": "Indonesian"
+        },
+        {
+          "code": "it",
+          "name": "Italian"
+        },
+        {
+          "code": "ja",
+          "name": "Japanese"
+        },
+        {
+          "code": "kn",
+          "name": "Kannada"
+        },
+        {
+          "code": "kk",
+          "name": "Kazakh"
+        },
+        {
+          "code": "ko",
+          "name": "Korean"
+        },
+        {
+          "code": "lv",
+          "name": "Latvian"
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian"
+        },
+        {
+          "code": "mk",
+          "name": "Macedonian"
+        },
+        {
+          "code": "ms",
+          "name": "Malay"
+        },
+        {
+          "code": "ml",
+          "name": "Malayalam"
+        },
+        {
+          "code": "mr",
+          "name": "Marathi"
+        },
+        {
+          "code": "no",
+          "name": "Norwegian"
+        },
+        {
+          "code": "fa",
+          "name": "Persian"
+        },
+        {
+          "code": "pl",
+          "name": "Polish"
+        },
+        {
+          "code": "pt",
+          "name": "Portuguese"
+        },
+        {
+          "code": "pa",
+          "name": "Punjabi"
+        },
+        {
+          "code": "ro",
+          "name": "Romanian"
+        },
+        {
+          "code": "ru",
+          "name": "Russian"
+        },
+        {
+          "code": "sr",
+          "name": "Serbian"
+        },
+        {
+          "code": "sk",
+          "name": "Slovak"
+        },
+        {
+          "code": "sl",
+          "name": "Slovenian"
+        },
+        {
+          "code": "es",
+          "name": "Spanish"
+        },
+        {
+          "code": "sw",
+          "name": "Swahili"
+        },
+        {
+          "code": "sv",
+          "name": "Swedish"
+        },
+        {
+          "code": "tl",
+          "name": "Tagalog"
+        },
+        {
+          "code": "ta",
+          "name": "Tamil"
+        },
+        {
+          "code": "te",
+          "name": "Telugu"
+        },
+        {
+          "code": "th",
+          "name": "Thai"
+        },
+        {
+          "code": "tr",
+          "name": "Turkish"
+        },
+        {
+          "code": "uk",
+          "name": "Ukrainian"
+        },
+        {
+          "code": "ur",
+          "name": "Urdu"
+        },
+        {
+          "code": "vi",
+          "name": "Vietnamese"
+        },
+        {
+          "code": "cy",
+          "name": "Welsh"
+        }
+      ],
+      "name": "Speech-to-Text Real-time Preview",
+      "transcription_mode": "real_time",
+      "translation_targets": [
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "af"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "sq"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ar"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "az"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "eu"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "be"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "bn"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "bs"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "bg"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ca"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en", "fr", "de", "it", "ja", "ko", "es"],
+          "target_language": "zh"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en", "sl"],
+          "target_language": "hr"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "cs"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "da"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "nl"
+        },
+        {
+          "exclude_source_languages": [
+            "af",
+            "sq",
+            "ar",
+            "az",
+            "eu",
+            "be",
+            "bn",
+            "bs",
+            "bg",
+            "ca",
+            "zh",
+            "hr",
+            "cs",
+            "da",
+            "nl",
+            "et",
+            "fi",
+            "fr",
+            "gl",
+            "de",
+            "el",
+            "gu",
+            "he",
+            "hi",
+            "hu",
+            "id",
+            "it",
+            "ja",
+            "kn",
+            "kk",
+            "ko",
+            "lv",
+            "lt",
+            "mk",
+            "ms",
+            "ml",
+            "mr",
+            "no",
+            "fa",
+            "pl",
+            "pt",
+            "pa",
+            "ro",
+            "ru",
+            "sr",
+            "sk",
+            "sl",
+            "es",
+            "sw",
+            "sv",
+            "tl",
+            "ta",
+            "te",
+            "th",
+            "tr",
+            "uk",
+            "ur",
+            "vi",
+            "cy"
+          ],
+          "source_languages": ["*"],
+          "target_language": "en"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "et"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "fi"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["zh", "en", "de", "it", "ja", "ko", "sl", "es"],
+          "target_language": "fr"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "gl"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["zh", "en", "fr", "it", "ja", "ko", "sl", "es"],
+          "target_language": "de"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "el"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "gu"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "he"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "hi"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "hu"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "id"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["zh", "en", "fr", "de", "ja", "ko", "sl", "es"],
+          "target_language": "it"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["zh", "en", "fr", "de", "it", "ko", "es"],
+          "target_language": "ja"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "kn"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "kk"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["zh", "en", "fr", "de", "it", "ja", "es"],
+          "target_language": "ko"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "lv"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "lt"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "mk"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ms"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ml"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "mr"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "no"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "fa"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "pl"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en", "es"],
+          "target_language": "pt"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "pa"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ro"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ru"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en", "sl"],
+          "target_language": "sr"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "sk"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["hr", "en", "fr", "de", "it", "sr", "es"],
+          "target_language": "sl"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": [
+            "zh",
+            "en",
+            "fr",
+            "de",
+            "it",
+            "ja",
+            "ko",
+            "pt",
+            "sl"
+          ],
+          "target_language": "es"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "sw"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "sv"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "tl"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ta"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "te"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "th"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "tr"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "uk"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "ur"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "vi"
+        },
+        {
+          "exclude_source_languages": [],
+          "source_languages": ["en"],
+          "target_language": "cy"
+        }
+      ],
+      "two_way_translation_pairs": [
+        "af:en",
+        "sq:en",
+        "ar:en",
+        "az:en",
+        "eu:en",
+        "be:en",
+        "bn:en",
+        "bs:en",
+        "bg:en",
+        "ca:en",
+        "zh:en",
+        "zh:fr",
+        "zh:de",
+        "zh:it",
+        "zh:ja",
+        "zh:ko",
+        "zh:es",
+        "hr:en",
+        "hr:sl",
+        "cs:en",
+        "da:en",
+        "nl:en",
+        "en:af",
+        "en:sq",
+        "en:ar",
+        "en:az",
+        "en:eu",
+        "en:be",
+        "en:bn",
+        "en:bs",
+        "en:bg",
+        "en:ca",
+        "en:zh",
+        "en:hr",
+        "en:cs",
+        "en:da",
+        "en:nl",
+        "en:et",
+        "en:fi",
+        "en:fr",
+        "en:gl",
+        "en:de",
+        "en:el",
+        "en:gu",
+        "en:he",
+        "en:hi",
+        "en:hu",
+        "en:id",
+        "en:it",
+        "en:ja",
+        "en:kn",
+        "en:kk",
+        "en:ko",
+        "en:lv",
+        "en:lt",
+        "en:mk",
+        "en:ms",
+        "en:ml",
+        "en:mr",
+        "en:no",
+        "en:fa",
+        "en:pl",
+        "en:pt",
+        "en:pa",
+        "en:ro",
+        "en:ru",
+        "en:sr",
+        "en:sk",
+        "en:sl",
+        "en:es",
+        "en:sw",
+        "en:sv",
+        "en:tl",
+        "en:ta",
+        "en:te",
+        "en:th",
+        "en:tr",
+        "en:uk",
+        "en:ur",
+        "en:vi",
+        "en:cy",
+        "et:en",
+        "fi:en",
+        "fr:zh",
+        "fr:en",
+        "fr:de",
+        "fr:it",
+        "fr:ja",
+        "fr:ko",
+        "fr:sl",
+        "fr:es",
+        "gl:en",
+        "de:zh",
+        "de:en",
+        "de:fr",
+        "de:it",
+        "de:ja",
+        "de:ko",
+        "de:sl",
+        "de:es",
+        "el:en",
+        "gu:en",
+        "he:en",
+        "hi:en",
+        "hu:en",
+        "id:en",
+        "it:zh",
+        "it:en",
+        "it:fr",
+        "it:de",
+        "it:ja",
+        "it:ko",
+        "it:sl",
+        "it:es",
+        "ja:zh",
+        "ja:en",
+        "ja:fr",
+        "ja:de",
+        "ja:it",
+        "ja:ko",
+        "ja:es",
+        "kn:en",
+        "kk:en",
+        "ko:zh",
+        "ko:en",
+        "ko:fr",
+        "ko:de",
+        "ko:it",
+        "ko:ja",
+        "ko:es",
+        "lv:en",
+        "lt:en",
+        "mk:en",
+        "ms:en",
+        "ml:en",
+        "mr:en",
+        "no:en",
+        "fa:en",
+        "pl:en",
+        "pt:en",
+        "pt:es",
+        "pa:en",
+        "ro:en",
+        "ru:en",
+        "sr:en",
+        "sr:sl",
+        "sk:en",
+        "sl:hr",
+        "sl:en",
+        "sl:fr",
+        "sl:de",
+        "sl:it",
+        "sl:sr",
+        "sl:es",
+        "es:zh",
+        "es:en",
+        "es:fr",
+        "es:de",
+        "es:it",
+        "es:ja",
+        "es:ko",
+        "es:pt",
+        "es:sl",
+        "sw:en",
+        "sv:en",
+        "tl:en",
+        "ta:en",
+        "te:en",
+        "th:en",
+        "tr:en",
+        "uk:en",
+        "ur:en",
+        "vi:en",
+        "cy:en"
+      ]
+    },
+    {
+      "id": "stt-async-preview",
+      "languages": [
+        {
+          "code": "af",
+          "name": "Afrikaans"
+        },
+        {
+          "code": "sq",
+          "name": "Albanian"
+        },
+        {
+          "code": "ar",
+          "name": "Arabic"
+        },
+        {
+          "code": "az",
+          "name": "Azerbaijani"
+        },
+        {
+          "code": "eu",
+          "name": "Basque"
+        },
+        {
+          "code": "be",
+          "name": "Belarusian"
+        },
+        {
+          "code": "bn",
+          "name": "Bengali"
+        },
+        {
+          "code": "bs",
+          "name": "Bosnian"
+        },
+        {
+          "code": "bg",
+          "name": "Bulgarian"
+        },
+        {
+          "code": "ca",
+          "name": "Catalan"
+        },
+        {
+          "code": "zh",
+          "name": "Chinese"
+        },
+        {
+          "code": "hr",
+          "name": "Croatian"
+        },
+        {
+          "code": "cs",
+          "name": "Czech"
+        },
+        {
+          "code": "da",
+          "name": "Danish"
+        },
+        {
+          "code": "nl",
+          "name": "Dutch"
+        },
+        {
+          "code": "en",
+          "name": "English"
+        },
+        {
+          "code": "et",
+          "name": "Estonian"
+        },
+        {
+          "code": "fi",
+          "name": "Finnish"
+        },
+        {
+          "code": "fr",
+          "name": "French"
+        },
+        {
+          "code": "gl",
+          "name": "Galician"
+        },
+        {
+          "code": "de",
+          "name": "German"
+        },
+        {
+          "code": "el",
+          "name": "Greek"
+        },
+        {
+          "code": "gu",
+          "name": "Gujarati"
+        },
+        {
+          "code": "he",
+          "name": "Hebrew"
+        },
+        {
+          "code": "hi",
+          "name": "Hindi"
+        },
+        {
+          "code": "hu",
+          "name": "Hungarian"
+        },
+        {
+          "code": "id",
+          "name": "Indonesian"
+        },
+        {
+          "code": "it",
+          "name": "Italian"
+        },
+        {
+          "code": "ja",
+          "name": "Japanese"
+        },
+        {
+          "code": "kn",
+          "name": "Kannada"
+        },
+        {
+          "code": "kk",
+          "name": "Kazakh"
+        },
+        {
+          "code": "ko",
+          "name": "Korean"
+        },
+        {
+          "code": "lv",
+          "name": "Latvian"
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian"
+        },
+        {
+          "code": "mk",
+          "name": "Macedonian"
+        },
+        {
+          "code": "ms",
+          "name": "Malay"
+        },
+        {
+          "code": "ml",
+          "name": "Malayalam"
+        },
+        {
+          "code": "mr",
+          "name": "Marathi"
+        },
+        {
+          "code": "no",
+          "name": "Norwegian"
+        },
+        {
+          "code": "fa",
+          "name": "Persian"
+        },
+        {
+          "code": "pl",
+          "name": "Polish"
+        },
+        {
+          "code": "pt",
+          "name": "Portuguese"
+        },
+        {
+          "code": "pa",
+          "name": "Punjabi"
+        },
+        {
+          "code": "ro",
+          "name": "Romanian"
+        },
+        {
+          "code": "ru",
+          "name": "Russian"
+        },
+        {
+          "code": "sr",
+          "name": "Serbian"
+        },
+        {
+          "code": "sk",
+          "name": "Slovak"
+        },
+        {
+          "code": "sl",
+          "name": "Slovenian"
+        },
+        {
+          "code": "es",
+          "name": "Spanish"
+        },
+        {
+          "code": "sw",
+          "name": "Swahili"
+        },
+        {
+          "code": "sv",
+          "name": "Swedish"
+        },
+        {
+          "code": "tl",
+          "name": "Tagalog"
+        },
+        {
+          "code": "ta",
+          "name": "Tamil"
+        },
+        {
+          "code": "te",
+          "name": "Telugu"
+        },
+        {
+          "code": "th",
+          "name": "Thai"
+        },
+        {
+          "code": "tr",
+          "name": "Turkish"
+        },
+        {
+          "code": "uk",
+          "name": "Ukrainian"
+        },
+        {
+          "code": "ur",
+          "name": "Urdu"
+        },
+        {
+          "code": "vi",
+          "name": "Vietnamese"
+        },
+        {
+          "code": "cy",
+          "name": "Welsh"
+        }
+      ],
+      "name": "Speech-to-Text Async Preview",
+      "transcription_mode": "async",
+      "translation_targets": [],
+      "two_way_translation_pairs": []
+    }
+  ]
+}

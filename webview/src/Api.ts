@@ -1,0 +1,175 @@
+/**
+ * API service for the Translation webview
+ */
+import { LanguagePair } from './types';
+import { terminal } from 'virtual:terminal';
+
+// Use environment variable for API URL, fallback to relative URLs in production
+// Check window location to determine if we're in production
+const isProduction = window.location.hostname.includes('mentra.glass') ||
+                    window.location.hostname.includes('onporter.run');
+
+// Allow override via environment variable
+terminal.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
+terminal.log('isProduction:', isProduction);
+
+const API_BASE_URL = isProduction 
+  ? 'https://translation-api.mentra.glass'
+  : (import.meta.env.VITE_API_URL || '');
+
+terminal.log('API_BASE_URL:', API_BASE_URL);
+terminal.log('Is production?', isProduction);
+terminal.log('Window hostname:', window.location.hostname);
+terminal.log('Vite MODE:', import.meta.env.MODE);
+
+// Handler for SSE connections
+let eventSourceInstance: EventSource | null = null;
+const eventListeners: Record<string, ((event: MessageEvent) => void)[]> = {};
+
+const api = {
+  // Fetch language settings
+  async getLanguageSettings(headers?: HeadersInit): Promise<LanguagePair> {
+    try {
+      const url = `${API_BASE_URL}/api/language-settings`;
+      terminal.log('Fetching language settings from:', url);
+      terminal.log('Headers:', headers);
+      const response = await fetch(url, {
+        headers: headers || {},
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      terminal.error('Error fetching language settings:', error);
+      return { from: 'Unknown', to: 'Unknown' };
+    }
+  },
+
+  // End point to check if a user/email has an active app session on TPA server (in memory)
+  async getUserAppActive(userId: string): Promise<{active: boolean}> {
+    try {
+      const url = `${API_BASE_URL}/api/user-app-session-active?email=${encodeURIComponent(userId)}`;
+      terminal.log('checking for ', userId, `app activity`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      terminal.log('user activity data:', data);
+      
+      return data;
+
+    } catch (error) {
+      terminal.error('Error fetching user-active status:', error);
+      return { active: false };
+    }
+  },
+
+
+  // Update language settings
+  async updateLanguageSettings(languagePair: Partial<LanguagePair>, headers?: HeadersInit): Promise<LanguagePair> {
+    try {
+      const url = `${API_BASE_URL}/api/language-settings`;
+      terminal.log('Updating language settings to:', languagePair);
+      terminal.log('Headers:', headers);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(headers || {}),
+        },
+        body: JSON.stringify(languagePair),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        terminal.error(`API error ${response.status}:`, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+      
+      const updatedPair = await response.json();
+      terminal.log('Language settings updated successfully:', updatedPair);
+      return updatedPair;
+    } catch (error) {
+      terminal.error('Error updating language settings:', error);
+      throw error;
+    }
+  },
+  
+  // Events (SSE) endpoints
+  events: {
+    connect: (): EventSource | null => {
+      if (eventSourceInstance && eventSourceInstance.readyState !== EventSource.CLOSED) {
+        return eventSourceInstance;
+      }
+      
+      const eventUrl = `${API_BASE_URL}/translation-events`;
+      
+      eventSourceInstance = new EventSource(eventUrl);
+      
+      // Handle connection events
+      eventSourceInstance.onopen = () => {
+        terminal.log('✅ SSE connection established with translation server');
+      };
+      
+      eventSourceInstance.onerror = (error) => {
+        terminal.error('❌ SSE connection error:', error);
+        
+        // Auto-reconnect if closed
+        if (eventSourceInstance?.readyState === EventSource.CLOSED) {
+          terminal.log('🔄 Attempting to reconnect to translation server...');
+          eventSourceInstance = null;
+          setTimeout(() => api.events.connect(), 3000);
+        }
+      };
+      
+      // Re-attach any existing listeners
+      Object.entries(eventListeners).forEach(([eventName, listeners]) => {
+        listeners.forEach(listener => {
+          eventSourceInstance?.addEventListener(eventName, listener as EventListener);
+        });
+      });
+      
+      return eventSourceInstance;
+    },
+    
+    addEventListener: (eventName: string, callback: (event: MessageEvent) => void): void => {
+      if (!eventListeners[eventName]) {
+        eventListeners[eventName] = [];
+      }
+      
+      eventListeners[eventName].push(callback);
+      
+      // Make sure we have a connection
+      const source = api.events.connect();
+      source?.addEventListener(eventName, callback as EventListener);
+    },
+    
+    removeEventListener: (eventName: string, callback: (event: MessageEvent) => void): void => {
+      if (eventListeners[eventName]) {
+        eventListeners[eventName] = eventListeners[eventName].filter(cb => cb !== callback);
+      }
+      
+      eventSourceInstance?.removeEventListener(eventName, callback as EventListener);
+    },
+    
+    close: (): void => {
+      if (eventSourceInstance) {
+        eventSourceInstance.close();
+        eventSourceInstance = null;
+      }
+      
+      // Clear listeners
+      Object.keys(eventListeners).forEach(key => {
+        eventListeners[key] = [];
+      });
+    }
+  }
+};
+
+export default api;

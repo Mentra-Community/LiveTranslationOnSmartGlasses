@@ -6,11 +6,13 @@ import {
   TranslationData,
   AppSession,
 } from '@mentra/sdk';
-import { TranscriptProcessor, languageToLocale, convertLineWidth } from './utils';
+import { TranscriptProcessor, languageToLocale, localeToLanguage, convertLineWidth } from './utils';
 import { convertToPinyin } from './utils/ChineseUtils';
 import { ConfidenceCalculator, ConfidenceHeuristic } from './utils/confidenceHeuristics';
-import axios from 'axios';
+import { ConversationManager } from './services/ConversationManager';
+import { setupAPI } from './api';
 import fs from 'fs';
+import { Response } from 'express';
 
 const IS_CHINA = process.env.DEPLOYMENT_REGION === 'china';
 
@@ -66,13 +68,17 @@ interface InactivityTimer {
 /**
  * LiveTranslationApp - Main application class that extends TpaServer
  */
-class LiveTranslationApp extends AppServer {
+export class LiveTranslationApp extends AppServer {
   // Session debouncers for throttling non-final transcripts
   private sessionDebouncers = new Map<string, TranscriptDebouncer>();
   // Track active sessions by user ID
   private activeUserSessions = new Map<string, { session: AppSession, sessionId: string }>();
   // Inactivity timers for clearing text after 40 seconds of no activity
   private inactivityTimers = new Map<string, InactivityTimer>();
+  // Conversation managers per user
+  private userConversationManagers = new Map<string, ConversationManager>();
+  // SSE clients tracking per user
+  private userSSEClients = new Map<string, Set<Response>>();
 
   constructor() {
     super({
@@ -81,8 +87,30 @@ class LiveTranslationApp extends AppServer {
       port: PORT,
       publicDir: IS_CHINA ? path.join(__dirname, './china_public') : path.join(__dirname, './public'),
     });
+    
+    // Enable CORS for the webview
+    this.setupCORS();
   }
-
+  
+  private setupCORS(): void {
+    const app = this.getExpressApp();
+    app.use((req, res, next) => {
+      // Allow requests from any origin for development
+      // In production, you should restrict this to your actual webview domain
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      
+      // Handle preflight requests
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
+  }
+  
+  // 
   /**
    * Called by TpaServer when a new session is created
    */
@@ -97,6 +125,19 @@ class LiveTranslationApp extends AppServer {
     
     // Store the active session for this user
     this.activeUserSessions.set(userId, { session, sessionId });
+
+    // Check existing language settings from session storage (don't clear them)
+    console.log(`🔍 Checking existing session storage data for user ${userId}`);
+    const existingSourceLang = await session.simpleStorage.get("sourceLang");
+    const existingTargetLang = await session.simpleStorage.get("targetLang");
+    console.log(`📋 Found stored languages: ${existingSourceLang} -> ${existingTargetLang}`);
+
+    // Initialize conversation manager for this user
+    let conversationManager = this.userConversationManagers.get(userId);
+    if (!conversationManager) {
+      conversationManager = new ConversationManager();
+      this.userConversationManagers.set(userId, conversationManager);
+    }
 
     try {
       // Set up settings change handlers
@@ -115,13 +156,16 @@ class LiveTranslationApp extends AppServer {
       );
       userTranscriptProcessors.set(userId, transcriptProcessor);
       
-      // Default source and target languages from config
-      const sourceLang = defaultSettings.transcribeLanguage;
-      const targetLang = defaultSettings.translateLanguage;
+      // Check stored languages first, then use defaults as fallback
+      const storedSourceLang = await session.simpleStorage.get("sourceLang");
+      const storedTargetLang = await session.simpleStorage.get("targetLang");
+
+      const sourceLang = (storedSourceLang && storedSourceLang !== "NONE") ? storedSourceLang : "English";
+      const targetLang = (storedTargetLang && storedTargetLang !== "NONE") ? storedTargetLang : "Chinese (Hanzi)";
       const sourceLocale = languageToLocale(sourceLang);
       const targetLocale = languageToLocale(targetLang);
 
-      console.log(`[Session ${sessionId}]: sourceLang=${sourceLang}, targetLang=${targetLang}`);
+      console.log(`[Session ${sessionId}] Error fallback: sourceLang=${sourceLang}, targetLang=${targetLang}`);
       userSourceLanguages.set(userId, sourceLang);
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, defaultSettings.displayMode);
@@ -131,6 +175,9 @@ class LiveTranslationApp extends AppServer {
       // Setup handler for translation data
       const cleanup = session.onTranslationForLanguage(sourceLocale, targetLocale, (data: TranslationData) => {
         this.handleTranslation(session, sessionId, userId, data);
+        // I don't like how ConversationManager is an event emitter, so we handle the translation directly here like.
+        // const conversationManager = this.userConversationManagers.get(userId);
+        // conversationManager.handleTranslation(data);
       });
       
       // Register cleanup handler
@@ -192,9 +239,19 @@ class LiveTranslationApp extends AppServer {
     userId: string
   ): Promise<void> {
     try {
-      // Extract settings
-      const sourceLang = session.settings.get<string>('transcribe_language', defaultSettings.transcribeLanguage);
-      const targetLang = session.settings.get<string>('translate_language', defaultSettings.translateLanguage);
+      // Check simpleStorage first, then in-memory maps, then defaults
+      // Note: We prioritize app-specific storage over glasses settings to ensure consistent defaults
+      const storedSourceLang = await session.simpleStorage.get("sourceLang");
+      const storedTargetLang = await session.simpleStorage.get("targetLang");
+
+      const sourceLang = (storedSourceLang && storedSourceLang !== "NONE") ? storedSourceLang :
+                        userSourceLanguages.get(userId) ||
+                        defaultSettings.transcribeLanguage;
+      const targetLang = (storedTargetLang && storedTargetLang !== "NONE") ? storedTargetLang :
+                        userTargetLanguages.get(userId) ||
+                        defaultSettings.translateLanguage;
+
+      console.log(`[Settings] Retrieved languages - Stored: ${storedSourceLang} -> ${storedTargetLang}, Final: ${sourceLang} -> ${targetLang}`);
       const displayMode = session.settings.get<string>('display_mode', defaultSettings.displayMode);
       const lineWidthSetting = session.settings.get<string>('line_width', defaultSettings.lineWidth);
       const numberOfLinesSetting = session.settings.get<number>('number_of_lines', defaultSettings.numberOfLines);
@@ -222,6 +279,24 @@ class LiveTranslationApp extends AppServer {
       userTargetLanguages.set(userId, targetLang);
       userDisplayModes.set(userId, displayMode);
       userConfidenceHeuristics.set(userId, confidenceHeuristicSetting);
+      
+      // Store languages in session storage
+      await session.simpleStorage.set("sourceLang", sourceLang);
+      await session.simpleStorage.set("targetLang", targetLang);
+      console.log(`💾 Stored languages in session storage: ${sourceLang} → ${targetLang}`);
+
+      // Update conversation manager language pair
+      const conversationManager = this.userConversationManagers.get(userId);
+      if (conversationManager) {
+        conversationManager.setLanguagePair(sourceLang, targetLang);
+
+        // Broadcast language change to all connected webview clients
+        this.broadcastToUserSSEClients(userId, {
+          type: 'languageChange',
+          data: { from: sourceLang, to: targetLang }
+        });
+        console.log(`[SSE] Sent language change event to all clients for user ${userId}: ${sourceLang} → ${targetLang}`);
+      }
       
       // Update or initialize confidence calculator
       let confidenceCalculator = userConfidenceCalculators.get(userId);
@@ -338,6 +413,9 @@ class LiveTranslationApp extends AppServer {
     userConfidenceCalculators.delete(userId);
     userConfidenceHeuristics.delete(userId);
     
+    // Clear conversation manager
+    this.userConversationManagers.delete(userId);
+    
     console.log(`✅ Complete data wipe completed for user ${userId}`);
   }
 
@@ -355,6 +433,8 @@ class LiveTranslationApp extends AppServer {
 
     console.log(`[Session ${sessionId}]: Handling translation for user ${userId}`);
 
+
+// this place seems pretty sus here not gonna lie
     let transcriptProcessor = userTranscriptProcessors.get(userId);
     if (!transcriptProcessor) {
       const targetLang = userTargetLanguages.get(userId) || defaultSettings.translateLanguage;
@@ -395,25 +475,115 @@ class LiveTranslationApp extends AppServer {
 
     // Get the display mode from settings or use default
     const displayMode = userDisplayModes.get(userId) || defaultSettings.displayMode;
+
+    // Check if the spoken language (transcribeLanguage) matches the user's target language
+    const spokenLocale = translationData.transcribeLanguage?.split('-')[0] || '';
+    const userTargetLocale = targetLocale.split('-')[0];
+
+    // If target language was spoken, skip glasses display entirely (don't overwrite existing text)
+    if (spokenLocale === userTargetLocale) {
+      console.log(`[Session ${sessionId}]: Target language spoken - skipping glasses display to preserve existing text`);
+
+      // Still process for webview (conversation manager)
+      const conversationManager = this.userConversationManagers.get(userId);
+      const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
+      const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
+      const originalText = translationData.originalText || '';
+
+      if (conversationManager && translationData.didTranslate) {
+        const result = conversationManager.addTranslation(
+          originalText,
+          newText,
+          detectedSourceLang,
+          detectedTargetLang,
+          isFinal
+        );
+
+        if (result.finalizedEntry) {
+          this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.finalizedEntry });
+        }
+        if (result.entry) {
+          this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.entry });
+        }
+      }
+
+      return; // Exit early - don't update glasses display
+    }
+
+    // Determine what text to show on glasses (source language was spoken or unknown language)
+    let glassesDisplayText = newText;
     
-    // If display mode is set to translations and the text is not in source language, return early
+    // For glasses display: only show translations when in 'translations' mode
     if (displayMode === 'translations' && !translationData.didTranslate) {
-      console.log(`[Session ${sessionId}]: Skipping translation - not in source language (${sourceLocale})`);
-      return;
+      console.log(`[Session ${sessionId}]: Skipping glasses display - not a translation`);
+      // Don't return - still process for webview
     }
 
     // console.log(`[Session ${sessionId}]: Received translation (${sourceLocale}->${targetLocale})`);
 
+    // Apply Pinyin conversion to glasses display text if target is Pinyin
     if (targetLanguage === 'Chinese (Pinyin)') {
-      const pinyinTranscript = convertToPinyin(newText);
-      console.log(`[Session ${sessionId}]: Converting Chinese to Pinyin`);
-      newText = pinyinTranscript;
+      const pinyinTranscript = convertToPinyin(glassesDisplayText);
+      console.log(`[Session ${sessionId}]: Converting Chinese to Pinyin for glasses display`);
+      glassesDisplayText = pinyinTranscript;
+      
+      // Also convert newText for webview if it's Chinese
+      if (newText === glassesDisplayText) {
+        newText = pinyinTranscript;
+      }
     }
 
-    let textToDisplay;
+    // Add translation to conversation manager for webview (bidirectional)
+    const conversationManager = this.userConversationManagers.get(userId);
+
+    // Determine the actual source and target languages from the translation data
+    const detectedSourceLang = localeToLanguage(translationData.transcribeLanguage || 'en');
+    const detectedTargetLang = localeToLanguage(translationData.translateLanguage || 'en');
+    const originalText = translationData.originalText || '';
+
+    if (conversationManager && translationData.didTranslate) {
+      console.log(`[Language Detection] Detected: ${translationData.transcribeLanguage} (${detectedSourceLang}) → ${translationData.translateLanguage} (${detectedTargetLang})`);
+      console.log(`[Language Detection] originalText: "${originalText}", translatedText: "${newText}"`);
+
+      console.log("Right here: -> ", {originalText})
+      console.log("Right here: -> ", {newText})
+      // Add the translation entry with the actual detected languages
+      const result = conversationManager.addTranslation(
+        originalText,
+        newText,
+        detectedSourceLang,
+        detectedTargetLang,
+        isFinal
+      );
+
+      // If a previous entry was finalized due to language change, broadcast it first
+      if (result.finalizedEntry) {
+        console.log(`[Translation] Language changed - finalizing previous entry:`, {
+          id: result.finalizedEntry.id,
+          originalLang: result.finalizedEntry.originalLanguage,
+          translatedLang: result.finalizedEntry.translatedLanguage,
+          isFinal: result.finalizedEntry.isFinal
+        });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.finalizedEntry });
+      }
+
+      // Broadcast to SSE clients if entry was created
+      if (result.entry) {
+        console.log(`[Translation] Broadcasting to SSE clients for user ${userId}:`, {
+          id: result.entry.id,
+          originalLang: result.entry.originalLanguage,
+          translatedLang: result.entry.translatedLanguage,
+          isFinal: result.entry.isFinal
+        });
+        this.broadcastToUserSSEClients(userId, { type: 'translation', data: result.entry });
+      }
+    }
+
+    let textToDisplay: string;
     if (isFinal) {
-      // For final translations, show the full transcript
-      textToDisplay = transcriptProcessor.processString(newText, isFinal);
+      // For final translations, show the glasses display text
+      textToDisplay = transcriptProcessor.processString(glassesDisplayText, isFinal);
+      
       confidenceCalculator.resetState(); // Reset confidence state on final transcript
       confidenceCalculator.resetInterimTracking(); // Reset interim tracking after final transcript
       console.log(`[Session ${sessionId}]: finalTranscriptCount=${transcriptProcessor.getFinalTranscriptHistory().length}`);
@@ -422,20 +592,28 @@ class LiveTranslationApp extends AppServer {
       const isHanzi = targetLanguage.toLowerCase().includes('hanzi') || targetLocale.toLowerCase().startsWith('ja-');
       let confidentPrefix: string;
       if (confidenceHeuristicSetting === 'None') {
-        confidentPrefix = newText;
+        confidentPrefix = glassesDisplayText;
       } else {
         // Update the confidence calculator's state for this interim
-        confidenceCalculator.calculateConfidence(newText, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
-        confidentPrefix = confidenceCalculator.getNonShrinkingConfidentPrefix(newText, 0.4, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+        confidenceCalculator.calculateConfidence(glassesDisplayText, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
+        confidentPrefix = confidenceCalculator.getNonShrinkingConfidentPrefix(glassesDisplayText, 0.4, isHanzi, confidenceHeuristicSetting as ConfidenceHeuristic);
       }
       // Only pass the confident prefix to the processor (it manages its own history)
       textToDisplay = transcriptProcessor.processString(confidentPrefix, false);
     }
 
-    console.log(`[Session ${sessionId}]: ${textToDisplay}`);
-    console.log(`[Session ${sessionId}]: isFinal=${isFinal}`);
-
-    this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
+    // Display logic based on mode and translation status
+    if (displayMode === 'translations' && translationData.didTranslate) {
+      console.log(`[Session ${sessionId}]: Showing translation ${translationData.transcribeLanguage}->${translationData.translateLanguage}: ${textToDisplay}`);
+      console.log(`[Session ${sessionId}]: isFinal=${isFinal}`);
+      this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
+    } else if (displayMode === 'everything') {
+      // Show everything mode - display all translations
+      console.log(`[Session ${sessionId}]: Showing all: ${textToDisplay}`);
+      this.debounceAndShowTranscript(session, sessionId, textToDisplay, isFinal);
+    } else {
+      console.log(`[Session ${sessionId}]: Skipping glasses display - displayMode=${displayMode}, didTranslate=${translationData.didTranslate}`);
+    }
   }
 
   /**
@@ -520,6 +698,147 @@ class LiveTranslationApp extends AppServer {
   }
 
   /**
+   * Add an SSE client for a specific user
+   */
+  public addSSEClient(userId: string, client: Response): void {
+    if (!this.userSSEClients.has(userId)) {
+      this.userSSEClients.set(userId, new Set());
+    }
+    this.userSSEClients.get(userId)!.add(client);
+  }
+
+  /**
+   * Remove an SSE client for a specific user
+   */
+  public removeSSEClient(userId: string, client: Response): void {
+    const clients = this.userSSEClients.get(userId);
+    if (clients) {
+      clients.delete(client);
+      // Clean up empty sets
+      if (clients.size === 0) {
+        this.userSSEClients.delete(userId);
+      }
+    }
+  }
+
+  /**
+   * Get conversation manager for a specific user
+   */
+  public getConversationManagerForUser(userId: string): ConversationManager | undefined {
+    return this.userConversationManagers.get(userId);
+  }
+  
+  /**
+   * Get all active users (for dev mode)
+   */
+  public getActiveUsers(): Set<string> {
+    return new Set(this.activeUserSessions.keys());
+  }
+
+  /**
+   * Update user languages and trigger settings reapplication
+   */
+  public async updateUserLanguages(userId: string, sourceLanguage?: string, targetLanguage?: string): Promise<boolean> {
+    try {
+      console.log(`🌐 Language update from webview for user ${userId}:`, {
+        sourceLanguage,
+        targetLanguage
+      });
+
+      // Get the active session for this user first
+      const activeSession = this.activeUserSessions.get(userId);
+      if (!activeSession) {
+        console.log(`No active session found for user ${userId}`);
+        return false;
+      }
+
+      // Store in session storage
+      await activeSession.session.simpleStorage.set("sourceLang", sourceLanguage ?? "NONE");
+      await activeSession.session.simpleStorage.set("targetLang", targetLanguage ?? "NONE");
+
+      // Update stored languages if provided
+      if (sourceLanguage) {
+        console.log(`📤 Setting source language: ${sourceLanguage}`);
+        userSourceLanguages.set(userId, sourceLanguage);
+      }
+      if (targetLanguage) {
+        console.log(`📥 Setting target language: ${targetLanguage}`);
+        userTargetLanguages.set(userId, targetLanguage);
+      }
+
+      // Reapply settings with the new languages
+      await this.applySettings(activeSession.session, activeSession.sessionId, userId);
+
+      return true;
+    } catch (error) {
+      console.error(`Error updating user languages for ${userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get user languages from session storage
+   */
+  public async getUserLanguagesFromStorage(userId: string): Promise<{ from: string; to: string } | null> {
+    try {
+      const activeSession = this.activeUserSessions.get(userId);
+      if (!activeSession) {
+        console.log(`No active session found for user ${userId}`);
+        return null;
+      }
+
+      const sourceLang = await activeSession.session.simpleStorage.get("sourceLang");
+      const targetLang = await activeSession.session.simpleStorage.get("targetLang");
+      
+
+      console.log(`📋 Retrieved from session storage for user ${userId}:`, {
+        sourceLang,
+        targetLang,
+        defaultSettings: {
+          transcribe: defaultSettings.transcribeLanguage,
+          translate: defaultSettings.translateLanguage
+        }
+      });
+
+      // Return stored values or fallback to defaults
+      const result = {
+        from: (sourceLang && sourceLang !== "NONE") ? sourceLang : defaultSettings.transcribeLanguage,
+        to: (targetLang && targetLang !== "NONE") ? targetLang : defaultSettings.translateLanguage
+      };
+
+      console.log(`📤 Returning language pair to frontend:`, result);
+      return result;
+    } catch (error) {
+      console.error(`Error getting user languages from storage for ${userId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Broadcast a message to all SSE clients for a specific user
+   */
+  private broadcastToUserSSEClients(userId: string, data: any): void {
+    const clients = this.userSSEClients.get(userId);
+    if (!clients || clients.size === 0) {
+      console.log(`[SSE] No active clients for user ${userId}`);
+      return;
+    }
+    
+    console.log(`[SSE] Broadcasting to ${clients.size} clients for user ${userId}`);
+    const message = `event: ${data.type}\ndata: ${JSON.stringify(data.data)}\n\n`;
+    clients.forEach(client => {
+      try {
+        client.write(message);
+        console.log(`[SSE] Message sent successfully`);
+      } catch (error) {
+        console.error('[SSE] Error broadcasting to client:', error);
+        // Remove dead connections
+        clients.delete(client);
+      }
+    });
+  }
+
+  /**
    * Resets the inactivity timer for a session and schedules text clearing
    */
   private resetInactivityTimer(session: AppSession, sessionId: string, userId: string): void {
@@ -542,6 +861,16 @@ class LiveTranslationApp extends AppServer {
         // Clear the processor's history
         transcriptProcessor.clear();
         
+        // Clear conversation manager
+        const conversationManager = this.userConversationManagers.get(userId);
+        if (conversationManager) {
+          conversationManager.clear();
+          
+          // Broadcast clear event to all connected webview clients
+          this.broadcastToUserSSEClients(userId, { type: 'clear', data: {} });
+          console.log(`[SSE] Sent clear event to all clients for user ${userId} due to inactivity`);
+        }
+        
         // Show empty state to user
         session.layouts.showTextWall("", {
           view: ViewType.MAIN,
@@ -555,11 +884,9 @@ class LiveTranslationApp extends AppServer {
 // Create and start the app
 const liveTranslationApp = new LiveTranslationApp();
 
-// Add health check endpoint
+// Set up API routes
 const expressApp = liveTranslationApp.getExpressApp();
-expressApp.get('/health', (req: any, res: any) => {
-  res.json({ status: 'healthy', app: PACKAGE_NAME });
-});
+setupAPI(expressApp as any, liveTranslationApp);
 
 // Start the server
 liveTranslationApp.start().then(() => {

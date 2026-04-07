@@ -31,19 +31,7 @@ Live Translation captures speech through your smart glasses microphone, transcri
 
 ## Getting Started
 
-### Prerequisites
-
-1. Install MentraOS: [get.mentraglass.com](https://get.mentraglass.com)
-2. Install Bun: [bun.sh](https://bun.sh/docs/installation)
-3. Set up ngrok: `brew install ngrok` and create a [static URL](https://dashboard.ngrok.com/)
-
-### Register Your App
-
-1. Go to [console.mentra.glass](https://console.mentra.glass/)
-2. Sign in and click "Create App"
-3. Set a unique package name (e.g., `com.yourName.translation`)
-4. Enter your ngrok URL as "Public URL"
-5. Add **microphone** permission
+For general MentraOS miniapp setup (installing MentraOS, tunneling, miniapp registration, deployment), see the **[Mentra Developer Docs](https://docs.mentraglass.com/app-devs/getting-started/deployment/overview)**.
 
 ### Run It
 
@@ -66,7 +54,7 @@ ngrok http --url=<YOUR_NGROK_URL> 80
 
 ## Documentation
 
-- [MentraOS Docs](https://docs.mentra.glass)
+- [Mentra Developer Docs](https://docs.mentraglass.com/app-devs/getting-started/deployment/overview)
 - [Developer Console](https://console.mentra.glass)
 
 ## License

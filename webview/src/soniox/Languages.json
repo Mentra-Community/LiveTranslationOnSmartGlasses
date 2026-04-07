@@ -1,0 +1,944 @@
+{
+  "af": {
+    "source_language": {
+      "af": "afrikaans"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "sq": {
+    "source_language": {
+      "sq": "albanian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ar": {
+    "source_language": {
+      "ar": "arabic"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "az": {
+    "source_language": {
+      "az": "azerburmeseaijani"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "eu": {
+    "source_language": {
+      "eu": "basque"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "be": {
+    "source_language": {
+      "be": "belarusian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "bn": {
+    "source_language": {
+      "bn": "bengali"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "bs": {
+    "source_language": {
+      "bs": "bosnian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "bg": {
+    "source_language": {
+      "bg": "bulgarian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ca": {
+    "source_language": {
+      "ca": "catalan"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "zh": {
+    "source_language": {
+      "zh": "chinese"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "hr": {
+    "source_language": {
+      "hr": "croatian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      },
+      {
+        "sl": "slovenian"
+      }
+    ]
+  },
+  "cs": {
+    "source_language": {
+      "cs": "czech"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "da": {
+    "source_language": {
+      "da": "danish"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "nl": {
+    "source_language": {
+      "nl": "dutch"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "en": {
+    "source_language": {
+      "en": "english"
+    },
+    "supported_target_languages": [
+      {
+        "af": "afrikaans"
+      },
+      {
+        "sq": "albanian"
+      },
+      {
+        "ar": "arabic"
+      },
+      {
+        "az": "azerburmeseaijani"
+      },
+      {
+        "eu": "basque"
+      },
+      {
+        "be": "belarusian"
+      },
+      {
+        "bn": "bengali"
+      },
+      {
+        "bs": "bosnian"
+      },
+      {
+        "bg": "bulgarian"
+      },
+      {
+        "ca": "catalan"
+      },
+      {
+        "zh": "chinese"
+      },
+      {
+        "hr": "croatian"
+      },
+      {
+        "cs": "czech"
+      },
+      {
+        "da": "danish"
+      },
+      {
+        "nl": "dutch"
+      },
+      {
+        "et": "estonian"
+      },
+      {
+        "fi": "finnish"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "gl": "galician"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "el": "greek"
+      },
+      {
+        "gu": "gujarati"
+      },
+      {
+        "he": "hebrew"
+      },
+      {
+        "hi": "hindi"
+      },
+      {
+        "hu": "hungarian"
+      },
+      {
+        "id": "indonesian"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "kn": "kannada"
+      },
+      {
+        "kk": "kazakh"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "lv": "latvian"
+      },
+      {
+        "lt": "lithuanian"
+      },
+      {
+        "mk": "macedonian"
+      },
+      {
+        "ms": "malay"
+      },
+      {
+        "ml": "malayalam"
+      },
+      {
+        "mr": "marathi"
+      },
+      {
+        "no": "norwegian"
+      },
+      {
+        "fa": "persian"
+      },
+      {
+        "pl": "polish"
+      },
+      {
+        "pt": "portuguese"
+      },
+      {
+        "pa": "punjabi"
+      },
+      {
+        "ro": "romanian"
+      },
+      {
+        "ru": "russian"
+      },
+      {
+        "sr": "serbian"
+      },
+      {
+        "sk": "slovak"
+      },
+      {
+        "sl": "slovenian"
+      },
+      {
+        "es": "spanish"
+      },
+      {
+        "sw": "swahili"
+      },
+      {
+        "sv": "swedish"
+      },
+      {
+        "tl": "tagalog"
+      },
+      {
+        "ta": "tamil"
+      },
+      {
+        "te": "telugu"
+      },
+      {
+        "th": "thai"
+      },
+      {
+        "tr": "turkish"
+      },
+      {
+        "uk": "ukrainian"
+      },
+      {
+        "ur": "urdu"
+      },
+      {
+        "vi": "vietnamese"
+      },
+      {
+        "cy": "welsh"
+      }
+    ]
+  },
+  "et": {
+    "source_language": {
+      "et": "estonian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "fi": {
+    "source_language": {
+      "fi": "finnish"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "fr": {
+    "source_language": {
+      "fr": "french"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "sl": "slovenian"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "gl": {
+    "source_language": {
+      "gl": "galician"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "de": {
+    "source_language": {
+      "de": "german"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "sl": "slovenian"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "el": {
+    "source_language": {
+      "el": "greek"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "gu": {
+    "source_language": {
+      "gu": "gujarati"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "he": {
+    "source_language": {
+      "he": "hebrew"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "hi": {
+    "source_language": {
+      "hi": "hindi"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "hu": {
+    "source_language": {
+      "hu": "hungarian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "id": {
+    "source_language": {
+      "id": "indonesian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "it": {
+    "source_language": {
+      "it": "italian"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "sl": "slovenian"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "ja": {
+    "source_language": {
+      "ja": "japanese"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "kn": {
+    "source_language": {
+      "kn": "kannada"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "kk": {
+    "source_language": {
+      "kk": "kazakh"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ko": {
+    "source_language": {
+      "ko": "korean"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "lv": {
+    "source_language": {
+      "lv": "latvian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "lt": {
+    "source_language": {
+      "lt": "lithuanian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "mk": {
+    "source_language": {
+      "mk": "macedonian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ms": {
+    "source_language": {
+      "ms": "malay"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ml": {
+    "source_language": {
+      "ml": "malayalam"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "mr": {
+    "source_language": {
+      "mr": "marathi"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "no": {
+    "source_language": {
+      "no": "norwegian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "fa": {
+    "source_language": {
+      "fa": "persian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "pl": {
+    "source_language": {
+      "pl": "polish"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "pt": {
+    "source_language": {
+      "pt": "portuguese"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "pa": {
+    "source_language": {
+      "pa": "punjabi"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ro": {
+    "source_language": {
+      "ro": "romanian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ru": {
+    "source_language": {
+      "ru": "russian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "sr": {
+    "source_language": {
+      "sr": "serbian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      },
+      {
+        "sl": "slovenian"
+      }
+    ]
+  },
+  "sk": {
+    "source_language": {
+      "sk": "slovak"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "sl": {
+    "source_language": {
+      "sl": "slovenian"
+    },
+    "supported_target_languages": [
+      {
+        "hr": "croatian"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "sr": "serbian"
+      },
+      {
+        "es": "spanish"
+      }
+    ]
+  },
+  "es": {
+    "source_language": {
+      "es": "spanish"
+    },
+    "supported_target_languages": [
+      {
+        "zh": "chinese"
+      },
+      {
+        "en": "english"
+      },
+      {
+        "fr": "french"
+      },
+      {
+        "de": "german"
+      },
+      {
+        "it": "italian"
+      },
+      {
+        "ja": "japanese"
+      },
+      {
+        "ko": "korean"
+      },
+      {
+        "pt": "portuguese"
+      },
+      {
+        "sl": "slovenian"
+      }
+    ]
+  },
+  "sw": {
+    "source_language": {
+      "sw": "swahili"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "sv": {
+    "source_language": {
+      "sv": "swedish"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "tl": {
+    "source_language": {
+      "tl": "tagalog"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ta": {
+    "source_language": {
+      "ta": "tamil"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "te": {
+    "source_language": {
+      "te": "telugu"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "th": {
+    "source_language": {
+      "th": "thai"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "tr": {
+    "source_language": {
+      "tr": "turkish"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "uk": {
+    "source_language": {
+      "uk": "ukrainian"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "ur": {
+    "source_language": {
+      "ur": "urdu"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "vi": {
+    "source_language": {
+      "vi": "vietnamese"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  },
+  "cy": {
+    "source_language": {
+      "cy": "welsh"
+    },
+    "supported_target_languages": [
+      {
+        "en": "english"
+      }
+    ]
+  }
+}

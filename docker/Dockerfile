@@ -11,5 +11,9 @@ RUN bun install
 # Copy the application code
 COPY . .
 
-# Expose the port
+# Install webview dependencies (but don't build - we'll run dev mode for debugging)
+RUN cd webview && bun install
+
+# Expose the ports
 EXPOSE 80
+EXPOSE 5173
