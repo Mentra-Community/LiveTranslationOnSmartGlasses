@@ -1,0 +1,60 @@
+name: Deploy Live Translation Frontend (Dev)
+
+on:
+  push:
+    branches:
+      - china
+
+jobs:
+  china-cloud-deploy-live-translation-frontend:
+    name: Build & Deploy Live Translation Frontend to Alibaba Cloud
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      LIVE_TRANSLATION_OSS_BUCKET: mentraos-dev-translation-oss
+      LIVE_TRANSLATION_OSS_CNAME: dev-translation.mentraglass.cn
+      LIVE_TRANSLATION_OSS_PATH: webview/dist
+
+    steps:
+      # 1. Checkout source code
+      - uses: actions/checkout@v4
+
+      # 2. Install ossutil
+      - name: Install ossutil
+        run: |
+          wget -O ossutil64 http://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64
+          chmod +x ossutil64
+          sudo mv ossutil64 /usr/local/bin/ossutil
+
+      # 3. Configure ossutil with CNAME support
+      - name: Configure ossutil
+        run: |
+          cat > /tmp/ossutilconfig <<EOF
+          [Credentials]
+          language=EN
+          endpoint=oss-cn-shenzhen.aliyuncs.com
+          accessKeyID=${{ secrets.ALIBABA_ACCESS_KEY_ID }}
+          accessKeySecret=${{ secrets.ALIBABA_ACCESS_KEY_SECRET }}
+
+          [Bucket-Cname]
+          ${MARKETING_OSS_BUCKET}=${MARKETING_OSS_CNAME}
+          EOF
+          echo "✅ Created ossutil config with CNAME mapping"
+
+      # 4. Build live translation frontend
+      - name: Build live translation frontend
+        working-directory: webview
+        env:
+          VITE_API_URL: https://dev-livetranslation.mentraglass.cn
+        run: bun install --frozen-lockfile && bun run build
+
+      # 5. Upload live translation frontend to OSS using the CNAME domain
+      - name: Upload live translation frontend to OSS
+        run: |
+          echo "🚀 Uploading ${LIVE_TRANSLATION_OSS_PATH}/ to oss://${LIVE_TRANSLATION_OSS_BUCKET}/ via CNAME: ${LIVE_TRANSLATION_OSS_CNAME}"
+          ossutil -c /tmp/ossutilconfig sync ${LIVE_TRANSLATION_OSS_PATH}/ oss://${LIVE_TRANSLATION_OSS_BUCKET}/ \
+            --delete \
+            --force \
+            --update
