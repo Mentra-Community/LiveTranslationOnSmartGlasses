@@ -21,14 +21,20 @@ jobs:
       # 1. Checkout source code
       - uses: actions/checkout@v4
 
-      # 2. Install ossutil
+      # 2. Setup Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # 3. Install ossutil
       - name: Install ossutil
         run: |
           wget -O ossutil64 http://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64
           chmod +x ossutil64
           sudo mv ossutil64 /usr/local/bin/ossutil
 
-      # 3. Configure ossutil with CNAME support
+      # 4. Configure ossutil with CNAME support
       - name: Configure ossutil
         run: |
           cat > /tmp/ossutilconfig <<EOF
@@ -43,14 +49,14 @@ jobs:
           EOF
           echo "✅ Created ossutil config with CNAME mapping"
 
-      # 4. Build live translation frontend
+      # 5. Build live translation frontend
       - name: Build live translation frontend
         working-directory: webview
         env:
           VITE_API_URL: https://dev-livetranslation.mentraglass.cn
-        run: bun install --frozen-lockfile && bun run build
+        run: bun install --frozen-lockfil && bun run build
 
-      # 5. Upload live translation frontend to OSS using the CNAME domain
+      # 6. Upload live translation frontend to OSS using the CNAME domain
       - name: Upload live translation frontend to OSS
         run: |
           echo "🚀 Uploading ${LIVE_TRANSLATION_OSS_PATH}/ to oss://${LIVE_TRANSLATION_OSS_BUCKET}/ via CNAME: ${LIVE_TRANSLATION_OSS_CNAME}"
