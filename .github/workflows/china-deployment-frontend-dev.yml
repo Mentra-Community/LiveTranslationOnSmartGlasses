@@ -45,7 +45,7 @@ jobs:
           accessKeySecret=${{ secrets.ALIBABA_ACCESS_KEY_SECRET }}
 
           [Bucket-Cname]
-          ${MARKETING_OSS_BUCKET}=${MARKETING_OSS_CNAME}
+          ${LIVE_TRANSLATION_OSS_BUCKET}=${LIVE_TRANSLATION_OSS_CNAME}
           EOF
           echo "✅ Created ossutil config with CNAME mapping"
 
