@@ -54,7 +54,7 @@ jobs:
         working-directory: webview
         env:
           VITE_API_URL: https://dev-livetranslation.mentraglass.cn
-        run: bun install && bun run build
+        run: bun install --frozen-lockfile && bun run build
 
       # 6. Upload live translation frontend to OSS using the CNAME domain
       - name: Upload live translation frontend to OSS
