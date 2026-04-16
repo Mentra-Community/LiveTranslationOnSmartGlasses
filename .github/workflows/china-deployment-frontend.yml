@@ -1,4 +1,4 @@
-name: Deploy Live Translation Frontend (Dev)
+name: Deploy Live Translation Frontend
 
 on:
   push:
@@ -13,8 +13,8 @@ jobs:
       contents: read
 
     env:
-      LIVE_TRANSLATION_OSS_BUCKET: mentraos-dev-translation-oss
-      LIVE_TRANSLATION_OSS_CNAME: dev-translation.mentraglass.cn
+      LIVE_TRANSLATION_OSS_BUCKET: mentraos-prod-translation-oss
+      LIVE_TRANSLATION_OSS_CNAME: translation.mentraglass.cn
       LIVE_TRANSLATION_OSS_PATH: webview/dist
 
     steps:
@@ -53,7 +53,7 @@ jobs:
       - name: Build live translation frontend
         working-directory: webview
         env:
-          VITE_API_URL: https://dev-livetranslation.mentraglass.cn
+          VITE_API_URL: https://translation-api.mentraglass.cn
         run: bun install && bun run build
 
       # 6. Upload live translation frontend to OSS using the CNAME domain

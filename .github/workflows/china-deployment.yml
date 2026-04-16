@@ -1,4 +1,4 @@
-name: China Cloud Deployment (dev)
+name: China Cloud Deployment
 
 on:
   push:
@@ -41,11 +41,11 @@ jobs:
       # Deploy using the environment file
       - uses: Mentra-Community/cloud-actions/deploy-app-alibaba@main
         with:
-          environment: "dev"
+          environment: "prod"
           alibaba-access-key-id: ${{ secrets.ALIBABA_ACCESS_KEY_ID }}
           alibaba-access-key-secret: ${{ secrets.ALIBABA_ACCESS_KEY_SECRET }}
           deployment-region: "cn-shenzhen"
-          app-name: "livetranslation"
+          app-name: "translation"
           acr-instance-id: "cri-jqkk34lm32lg9ce7"
           acr-vpc-domain: "mentra-acr-cnsz-a-registry-vpc.cn-shenzhen.cr.aliyuncs.com"
           acr-public-domain: "mentra-acr-cnsz-a-registry.cn-shenzhen.cr.aliyuncs.com"
