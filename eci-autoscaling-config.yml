@@ -3,14 +3,14 @@ kind: Deployment
 metadata:
   annotations:
     k8s.aliyun.com/ess-scaling-group-max-size: '2'
-    k8s.aliyun.com/ess-scaling-group-name: mentra-dev-ecisg-livetranslation
+    k8s.aliyun.com/ess-scaling-group-name: mentra-prod-ecisg-translation
     k8s.aliyun.com/ess-scaling-group-min-size: '1'
-  name: mentra-dev-ecig-livetranslation-cnsz
+  name: mentra-prod-ecig-translation-cnsz
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mentra-dev-ecig-livetranslation-cnsz
+      app: mentra-dev-ecig-translation-cnsz
   template:
     metadata:
       annotations:
@@ -31,7 +31,7 @@ spec:
               value: china
             - name: AUGMENTOS_API_KEY
               value: "${AUGMENTOS_API_KEY}"
-          image: mentra-acr-cnsz-a-registry-vpc.cn-shenzhen.cr.aliyuncs.com/mentra-dev/live_translation:latest
+          image: mentra-acr-cnsz-a-registry-vpc.cn-shenzhen.cr.aliyuncs.com/mentra-prod/translation:latest
           imagePullPolicy: Always
           lifecycle: {}
           livenessProbe: {}
