@@ -45,7 +45,7 @@ jobs:
           alibaba-access-key-id: ${{ secrets.ALIBABA_ACCESS_KEY_ID }}
           alibaba-access-key-secret: ${{ secrets.ALIBABA_ACCESS_KEY_SECRET }}
           deployment-region: "cn-shenzhen"
-          app-name: "translation"
+          app-name: "translation-api"
           acr-instance-id: "cri-jqkk34lm32lg9ce7"
           acr-vpc-domain: "mentra-acr-cnsz-a-registry-vpc.cn-shenzhen.cr.aliyuncs.com"
           acr-public-domain: "mentra-acr-cnsz-a-registry.cn-shenzhen.cr.aliyuncs.com"
