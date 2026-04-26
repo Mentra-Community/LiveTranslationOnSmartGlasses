@@ -14,8 +14,10 @@ import { setupAPI } from './api';
 import fs from 'fs';
 import { Response } from 'express';
 
+const IS_CHINA = process.env.DEPLOYMENT_REGION === 'china';
+
 // Load TPA config to get default values
-const tpaConfigPath = path.join(__dirname, './public/tpa_config.json');
+const tpaConfigPath = IS_CHINA ? path.join(__dirname, './china_public/tpa_config.json') : path.join(__dirname, './public/tpa_config.json');
 const tpaConfig = JSON.parse(fs.readFileSync(tpaConfigPath, 'utf8'));
 
 // Extract default values from config
@@ -83,7 +85,7 @@ export class LiveTranslationApp extends AppServer {
       packageName: PACKAGE_NAME!,
       apiKey: AUGMENTOS_API_KEY!,
       port: PORT,
-      publicDir: path.join(__dirname, './public'),
+      publicDir: IS_CHINA ? path.join(__dirname, './china_public') : path.join(__dirname, './public'),
     });
     
     // Enable CORS for the webview
