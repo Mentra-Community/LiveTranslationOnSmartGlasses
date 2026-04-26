@@ -28,6 +28,12 @@ jobs:
             value: "china"
           - name: AUGMENTOS_API_KEY
             value: "${{ secrets.CHINA_AUGMENTOS_API_KEY }}"
+          - name: aliyun_logs_app
+            value: "stdout"
+          - name: aliyun_logs_app_project
+            value: "mentraos-prod-sls"
+          - name: aliyun_logs_app_logstore
+            value: "translation-api"
           EOL
 
       - name: Create container args file
