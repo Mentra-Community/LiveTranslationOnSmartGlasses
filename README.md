@@ -71,4 +71,4 @@ ngrok http --url=<YOUR_NGROK_URL> 80
 
 ## License
 
-MIT
+Apache License 2.0
